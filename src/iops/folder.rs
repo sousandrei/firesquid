@@ -10,10 +10,10 @@ pub fn create_tmp_folder(user_path: &str) -> super::IoError {
         Err(e) => {
             match e.kind() {
                 ErrorKind::NotFound => {}
-                _ => panic!("Error resolving tmp path"),
+                _ => panic!("Error resolving tmp path: {}", e),
             }
 
-            fs::create_dir(&path).expect("Cannot create dir");
+            fs::create_dir(&path).expect(&format!("Cannot create dir [{}]", path.display()));
             fs::canonicalize(path).unwrap()
         }
     };
@@ -31,18 +31,18 @@ pub fn create_tmp_folder(user_path: &str) -> super::IoError {
                 println!("tmp dir not empty");
             }
         }
-        Err(e) => println!("cannot read dir: {}", e),
+        Err(e) => println!("Cannot read dir: {}", e),
     };
 
     Ok(())
 }
 
 #[test]
-fn works_custom_path() {
+fn create_tmp_folder_works_custom_path() {
     const PATH: &str = "./tmp1";
 
     let _ = create_tmp_folder(PATH);
-    let path = fs::canonicalize(PathBuf::from(PATH)).unwrap();
+    let path = PathBuf::from(PATH);
 
     assert_eq!(path.is_dir(), true);
 
@@ -50,17 +50,17 @@ fn works_custom_path() {
 }
 
 #[test]
-fn works_empty() {
-    let _ = create_tmp_folder(super::DEFAULT_PATH);
-    let path = fs::canonicalize(PathBuf::from(super::DEFAULT_PATH)).unwrap();
+fn create_tmp_folder_works_empty() {
+    let _ = create_tmp_folder(super::DEFAULT_TMP_PATH);
+    let path = PathBuf::from(super::DEFAULT_TMP_PATH);
 
     assert_eq!(path.is_dir(), true);
 
-    let _ = fs::remove_dir(super::DEFAULT_PATH);
+    let _ = fs::remove_dir(super::DEFAULT_TMP_PATH);
 }
 
 #[test]
 #[should_panic]
-fn invalid_path() {
+fn create_tmp_folder_invalid_path() {
     let _ = create_tmp_folder("");
 }
