@@ -1,5 +1,5 @@
 use std::fs;
-use std::io::{Error, ErrorKind};
+use std::io::ErrorKind;
 use std::path::PathBuf;
 
 pub fn delete_socket(socket_name: &str, tmp_path: &str) -> super::IoError {
@@ -15,10 +15,7 @@ pub fn delete_socket(socket_name: &str, tmp_path: &str) -> super::IoError {
     };
 
     if !path.exists() {
-        return Err(Error::new(
-            ErrorKind::InvalidInput,
-            format!("Socket file does not exist [{}]", path.display()),
-        ));
+        return Ok(());
     }
 
     fs::remove_file(&path)
