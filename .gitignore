@@ -1,3 +1,5 @@
 debug
 target
 Cargo.lock
+assets/firecracker
+assets/vmlinux

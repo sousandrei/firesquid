@@ -1,3 +1,4 @@
+mod cp;
 mod iops;
 
 fn main() {
@@ -10,6 +11,8 @@ fn main() {
         Ok(_) => println!("vm initialized"),
         Err(e) => eprintln!("vm initialization error: {}", e),
     }
+
+    cp::spawn("vm1");
 
     match iops::terminate_vm("vm1") {
         Ok(_) => println!("vm terminated"),

@@ -1,7 +1,10 @@
 [package]
-name = "firesquid"
-version = "0.1.0"
 authors = ["Andrei Sousa <sousandrei@gmail.com>"]
 edition = "2018"
+name = "firesquid"
+version = "0.1.0"
 
 [dependencies]
+hyper = {version = "0.13.8", features = ["stream"]}
+hyperlocal = "0.7"
+tokio = {version = "0.2.22", features = ["uds", "stream", "macros"]}

@@ -18,7 +18,6 @@ pub fn initialize_tmp(path: &str) -> IoError {
 }
 
 pub fn initialize_vm(vm_name: &str) -> IoError {
-    socket::create_socket(vm_name, DEFAULT_TMP_PATH)?;
     kernel::create_kernel(vm_name, DEFAULT_TMP_PATH)?;
     drive::create_drive(vm_name, DEFAULT_TMP_PATH)
 }
