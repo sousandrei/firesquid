@@ -41,10 +41,7 @@ pub fn delete_kernel(kernel_name: &str, tmp_path: &str) -> super::IoError {
     };
 
     if !path.exists() {
-        return Err(Error::new(
-            ErrorKind::InvalidInput,
-            format!("Drive file does not exist [{}]", path.display()),
-        ));
+        return Ok(());
     }
 
     fs::remove_file(&path)
