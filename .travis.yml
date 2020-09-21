@@ -8,6 +8,8 @@ jobs:
   allow_failures:
     - rust: nightly
   fast_finish: true
+before_script:
+  - touch assets/vmlinux
 script:
   - cargo build --verbose --workspace
   - cargo test --verbose --workspace
