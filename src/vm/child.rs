@@ -1,5 +1,6 @@
 use std::process::Stdio;
 use tokio::process::Command;
+use tokio::time::{delay_for, Duration};
 
 use crate::error::RuntimeError;
 use crate::vm::http;
@@ -16,6 +17,9 @@ pub async fn spawn_process(
         .stderr(Stdio::null())
         .spawn()
         .unwrap();
+
+    //TODO: wait for file to appear?
+    delay_for(Duration::from_millis(10)).await;
 
     set_kernel(vm_name, &state.assets_dir).await?;
     println!("kernel");
