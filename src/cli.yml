@@ -1,0 +1,42 @@
+name: FireSquid
+version: '1.0'
+author: Andrei Sousa <sousandrei@gmail.com>
+about: Simple AWS Firecracker orchestrator
+args:
+  - assets_dir:
+      short: a
+      long: assets_dir
+      value_name: DIR
+      help: Folder containing the assets (kernel, and drive)
+      default_value: './assets'
+  - tmp_dir:
+      short: t
+      long: tmp_dir
+      value_name: DIR
+      help: Sets a custom tmp dir to use
+      takes_value: true
+      default_value: './tmp'
+  - kernel_name:
+      short: k
+      long: kernel_name
+      value_name: KERNEL_NAME
+      help: Name of the kernel file
+      default_value: 'vmlinux'
+  - drive_name:
+      short: d
+      long: drive_name
+      value_name: BOOT_DRIVE_NAME
+      help: Name of the boot drive file
+      default_value: 'rootfs.ext4'
+  - firecracker_path:
+      short: f
+      long: firecracker_path
+      value_name: FIRECRACKER_PATH
+      help: Path of the firecracker binary
+      default_value: './assets/firecracker'
+  - port:
+      short: p
+      long: port
+      value_name: PORT
+      help: Port to run http server
+      default_value: '3000'
