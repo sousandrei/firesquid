@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://kafka.js.org">
+  <a href="#">
       <img src="https://storage.googleapis.com/firesquid/firesquid.svg" alt="Logo" width="125" height="125">
   </a>
 
