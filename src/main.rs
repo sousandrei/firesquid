@@ -1,21 +1,76 @@
-mod cp;
-mod iops;
+use clap::{load_yaml, App};
+use hyper::service::{make_service_fn, service_fn};
+use hyper::Server;
+use serde::{Deserialize, Serialize};
+use std::sync::{Arc, Mutex};
 
-fn main() {
-    match iops::initialize_tmp("./tmp") {
-        Ok(_) => println!("tmp initialized"),
-        Err(e) => eprintln!("tmp initialization error: {}", e),
+mod api;
+mod error;
+mod io;
+mod tmp;
+mod vm;
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Vm {
+    name: String,
+    pid: u32,
+}
+
+pub struct State {
+    vms: Arc<Mutex<Vec<Vm>>>,
+    tmp_dir: String,
+    assets_dir: String,
+    drive_name: String,
+    kernel_name: String,
+}
+
+impl Clone for State {
+    fn clone(&self) -> State {
+        State {
+            vms: self.vms.clone(),
+            tmp_dir: self.tmp_dir.clone(),
+            assets_dir: self.assets_dir.clone(),
+            drive_name: self.drive_name.clone(),
+            kernel_name: self.kernel_name.clone(),
+        }
     }
+}
 
-    match iops::initialize_vm("vm1") {
-        Ok(_) => println!("vm initialized"),
-        Err(e) => eprintln!("vm initialization error: {}", e),
-    }
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let yaml = load_yaml!("cli.yml");
+    let matches = App::from_yaml(yaml).get_matches();
 
-    cp::spawn("vm1");
+    let state = State {
+        vms: Arc::new(Mutex::new(Vec::new())),
+        tmp_dir: String::from(matches.value_of("tmp_dir").unwrap()),
+        assets_dir: String::from(matches.value_of("assets_dir").unwrap()),
+        drive_name: String::from(matches.value_of("drive_name").unwrap()),
+        kernel_name: String::from(matches.value_of("kernel_name").unwrap()),
+    };
 
-    match iops::terminate_vm("vm1") {
-        Ok(_) => println!("vm terminated"),
-        Err(e) => eprintln!("vm termination error: {}", e),
-    }
+    tmp::init(&state.tmp_dir)?;
+
+    let port = matches.value_of("port").unwrap();
+    let port: u16 = port.parse().unwrap();
+
+    let addr = ([127, 0, 0, 1], port).into();
+
+    let service = make_service_fn(|_| {
+        let state = state.clone();
+        async {
+            Ok::<_, hyper::Error>(service_fn(move |req| {
+                let state = state.clone();
+                async move { api::router(req, state).await }
+            }))
+        }
+    });
+
+    let server = Server::bind(&addr).serve(service);
+
+    println!("Listening on http://{}", addr);
+
+    server.await?;
+
+    Ok(())
 }
