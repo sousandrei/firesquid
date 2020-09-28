@@ -1,6 +1,7 @@
 use hyper::{Body, Client, Method, Request};
 use hyperlocal::{UnixClientExt, Uri};
 use std::path::Path;
+use tracing::info;
 
 use crate::error::RuntimeError;
 
@@ -28,7 +29,7 @@ pub async fn send_request(vm_name: &str, url: &str, body: &str) -> Result<(), Ru
         Err(_) => return Err(RuntimeError::new("error getting response")),
     };
 
-    println!("Response: {}", res.status());
+    info!("{} {}", path.display(), res.status());
 
     Ok(())
 }

@@ -2,7 +2,9 @@ use clap::{load_yaml, App};
 use hyper::service::{make_service_fn, service_fn};
 use hyper::Server;
 use serde::{Deserialize, Serialize};
+use std::env;
 use std::sync::{Arc, Mutex};
+use tracing::info;
 
 mod api;
 mod error;
@@ -38,6 +40,12 @@ impl Clone for State {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    if let Err(_) = env::var("RUST_LOG") {
+        env::set_var("RUST_LOG", "info");
+    }
+
+    tracing_subscriber::fmt::init();
+
     let yaml = load_yaml!("cli.yml");
     let matches = App::from_yaml(yaml).get_matches();
 
@@ -68,7 +76,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     let server = Server::bind(&addr).serve(service);
 
-    println!("Listening on http://{}", addr);
+    info!("Listening on http://{}", addr);
 
     server.await?;
 

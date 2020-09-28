@@ -4,6 +4,7 @@ mod http;
 mod socket;
 
 use tokio::task;
+use tracing::{error, info};
 
 use crate::error::RuntimeError;
 use crate::State;
@@ -41,7 +42,10 @@ pub async fn spawn(name: &str, state: State) -> Result<(), RuntimeError> {
         }
 
         if let Err(_) = child.await {
-            println!("ok")
+            error!(
+                "Failed to start machine, proceeding to teardown [{}]",
+                &name
+            );
         };
 
         drive::delete_drive(&name, &state.tmp_dir).unwrap();
@@ -52,7 +56,7 @@ pub async fn spawn(name: &str, state: State) -> Result<(), RuntimeError> {
             index => vms.remove(index),
         };
 
-        println!("{} terminated", name);
+        info!("Terminated [{}]", name);
     });
 
     Ok(())

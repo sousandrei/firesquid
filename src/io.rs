@@ -1,12 +1,13 @@
 use std::fs;
 use std::io::{Error, ErrorKind};
 use std::path::PathBuf;
+use tracing::{error, info, warn};
 
 pub fn create_folder(path: PathBuf) -> Result<(), std::io::Error> {
     validate_path(&path)?;
 
     if let Ok(_) = check_exists(&path) {
-        println!("Path create successfully [{}]", path.display());
+        info!("Path create successfully [{}]", path.display());
         fs::create_dir(path)?;
         return Ok(());
     }
@@ -20,12 +21,12 @@ pub fn create_folder(path: PathBuf) -> Result<(), std::io::Error> {
 
     match fs::read_dir(&path) {
         Ok(entries) => {
-            println!("Using folder [{}]", path.display());
+            info!("Using folder [{}]", path.display());
             if entries.peekable().peek().is_some() {
-                println!("Warning: tmp dir not empty [{}]", path.display());
+                warn!("Warning: tmp dir not empty [{}]", path.display());
             }
         }
-        Err(e) => println!("Cannot read dir: {}", e),
+        Err(e) => error!("Cannot read dir [{}]", e),
     };
 
     Ok(())
@@ -37,9 +38,6 @@ pub fn copy_file(src: PathBuf, dest: PathBuf) -> Result<(), std::io::Error> {
 
     validate_path(&dest)?;
     check_exists(&dest)?;
-
-    println!("src: {:?}", src);
-    println!("dest: {:?}", dest);
 
     match fs::copy(src, dest) {
         Ok(_) => Ok(()),
@@ -87,6 +85,7 @@ fn check_exists(path: &PathBuf) -> Result<(), std::io::Error> {
     Ok(())
 }
 
+//TODO: figure out testing
 // #[cfg(test)]
 // mod test {
 //     #[test]
