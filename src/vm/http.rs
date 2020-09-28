@@ -5,7 +5,6 @@ use tracing::info;
 
 use crate::error::RuntimeError;
 
-//TODO: clean up
 pub async fn send_request(vm_name: &str, url: &str, body: &str) -> Result<(), RuntimeError> {
     let vm_path = format!("./tmp/{}.socket", vm_name);
     let path = Path::new(&vm_path);
@@ -21,12 +20,18 @@ pub async fn send_request(vm_name: &str, url: &str, body: &str) -> Result<(), Ru
         .body(Body::from(body.to_owned()))
     {
         Ok(req) => req,
-        Err(_) => return Err(RuntimeError::new("error making request")),
+        Err(_) => {
+            let msg = format!("Error building request [{}]", vm_path);
+            return Err(RuntimeError::new(&msg));
+        }
     };
 
     let res = match client.request(req).await {
         Ok(res) => res,
-        Err(_) => return Err(RuntimeError::new("error getting response")),
+        Err(_) => {
+            let msg = format!("Error getting response [{}]", vm_path);
+            return Err(RuntimeError::new(&msg));
+        }
     };
 
     info!("{} {}", path.display(), res.status());

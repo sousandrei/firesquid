@@ -19,9 +19,10 @@ pub fn create_folder(path: PathBuf) -> Result<(), std::io::Error> {
         ));
     }
 
+    info!("Using folder [{}]", path.display());
+
     match fs::read_dir(&path) {
         Ok(entries) => {
-            info!("Using folder [{}]", path.display());
             if entries.peekable().peek().is_some() {
                 warn!("Warning: tmp dir not empty [{}]", path.display());
             }
