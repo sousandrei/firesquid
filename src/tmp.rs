@@ -4,7 +4,6 @@ use tracing::error;
 
 use crate::io;
 
-//TODO: better error handling
 pub fn init(path: &str) -> Result<(), std::io::Error> {
     let path = PathBuf::from(path);
 
@@ -13,7 +12,7 @@ pub fn init(path: &str) -> Result<(), std::io::Error> {
         Err(e) => match e.kind() {
             ErrorKind::AlreadyExists => Ok(()),
             _ => {
-                error!("{:?}", e.kind());
+                error!("Error creating folder [{:?}]", e.kind());
                 Err(e)
             }
         },

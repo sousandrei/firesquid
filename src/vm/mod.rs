@@ -15,11 +15,11 @@ pub async fn spawn(name: &str, state: State) -> Result<(), RuntimeError> {
 
     {
         let vms = state.vms.lock().unwrap();
-        //TODO: .find
-        for vm in vms.iter() {
-            if vm.name == name {
-                return Err(RuntimeError::new("Vm name already used"));
-            }
+        if let Some(_) = vms.iter().position(|vm| vm.name == name) {
+            return Err(RuntimeError::new(&format!(
+                "Vm name already used [{}]",
+                name
+            )));
         }
     }
 
@@ -52,9 +52,9 @@ pub async fn spawn(name: &str, state: State) -> Result<(), RuntimeError> {
         socket::delete_socket(&name, &state.tmp_dir).unwrap();
 
         let mut vms = state.vms.lock().unwrap();
-        match vms.iter().position(|vm| vm.name == name).unwrap() {
-            index => vms.remove(index),
-        };
+        if let Some(index) = vms.iter().position(|vm| vm.name == name) {
+            vms.remove(index);
+        }
 
         info!("Terminated [{}]", name);
     });
