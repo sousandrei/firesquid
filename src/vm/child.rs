@@ -1,6 +1,7 @@
 use std::process::Stdio;
 use tokio::process::Command;
 use tokio::time::{delay_for, Duration};
+use tracing::info;
 
 use crate::error::RuntimeError;
 use crate::vm::http;
@@ -22,13 +23,8 @@ pub async fn spawn_process(
     delay_for(Duration::from_millis(10)).await;
 
     set_kernel(vm_name, &state.assets_dir).await?;
-    println!("kernel");
-
     set_drive(vm_name, &state.tmp_dir).await?;
-    println!("drive");
-
     start_machine(vm_name).await?;
-    println!("start");
 
     Ok(child)
 }
@@ -41,8 +37,7 @@ pub async fn set_kernel(vm_name: &str, assets_dir: &str) -> Result<(), RuntimeEr
         "boot_args": "console=ttyS0 reboot=k panic=1 pci=off"
     });
 
-    println!("{}", url);
-    println!("{}", body);
+    info!("Set Kernel [{}]", vm_name);
 
     http::send_request(vm_name, url, &body.to_string()).await
 }
@@ -57,8 +52,7 @@ pub async fn set_drive(vm_name: &str, tmp_dir: &str) -> Result<(), RuntimeError>
         "is_read_only": false
     });
 
-    println!("{}", url);
-    println!("{}", body);
+    info!("Set Drive [{}]", vm_name);
 
     http::send_request(vm_name, url, &body.to_string()).await
 }
@@ -69,8 +63,7 @@ pub async fn start_machine(vm_name: &str) -> Result<(), RuntimeError> {
         "action_type": "InstanceStart",
     });
 
-    println!("{}", url);
-    println!("{}", body);
+    info!("Starting [{}]", vm_name);
 
     http::send_request(vm_name, url, &body.to_string()).await
 }
@@ -81,8 +74,7 @@ pub async fn stop_machine(vm_name: &str) -> Result<(), RuntimeError> {
         "action_type": "SendCtrlAltDel",
     });
 
-    println!("{}", url);
-    println!("{}", body);
+    info!("Stopping [{}]", vm_name);
 
     http::send_request(vm_name, url, &body.to_string()).await
 }

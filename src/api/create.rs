@@ -1,4 +1,5 @@
 use hyper::{Body, Request, Response, StatusCode};
+use tracing::error;
 
 use super::VmInput;
 use crate::{vm, State};
@@ -9,7 +10,7 @@ pub async fn handler(req: Request<Body>, state: State) -> Result<Response<Body>,
     let body: VmInput = match serde_json::from_slice(body_bytes) {
         Ok(j) => j,
         Err(e) => {
-            eprintln!("{}", e);
+            error!("{}", e);
 
             let mut error = Response::default();
             *error.status_mut() = StatusCode::BAD_REQUEST;
@@ -21,7 +22,7 @@ pub async fn handler(req: Request<Body>, state: State) -> Result<Response<Body>,
     match vm::spawn(&body.vm_name, state).await {
         Ok(_) => {}
         Err(e) => {
-            eprintln!("{}", e);
+            error!("{}", e);
 
             let mut error = Response::default();
             *error.status_mut() = StatusCode::BAD_REQUEST;
