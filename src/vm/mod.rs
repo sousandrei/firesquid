@@ -1,4 +1,4 @@
-pub mod child;
+mod child;
 mod drive;
 mod http;
 mod socket;
@@ -59,5 +59,10 @@ pub async fn spawn(name: &str, state: State) -> Result<(), RuntimeError> {
         info!("Terminated [{}]", name);
     });
 
+    Ok(())
+}
+
+pub async fn terminate(name: &str) -> Result<(), RuntimeError> {
+    child::stop_machine(name).await?;
     Ok(())
 }

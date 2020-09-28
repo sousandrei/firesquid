@@ -29,7 +29,7 @@ pub async fn handler(req: Request<Body>, state: State) -> Result<Response<Body>,
         };
     }
 
-    if let Err(e) = vm::child::stop_machine(&body.vm_name).await {
+    if let Err(e) = vm::terminate(&body.vm_name).await {
         let mut error = Response::default();
         *error.status_mut() = StatusCode::BAD_REQUEST;
         *error.body_mut() = Body::from(format!("error powering off vm: {}", e));
