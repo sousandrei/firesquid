@@ -1,4 +1,10 @@
+use chrono::prelude::*;
+use core::marker::{Send, Sync, Unpin};
 use std::process::Stdio;
+use tokio::fs::File;
+use tokio::io::AsyncRead;
+use tokio::io::{AsyncBufReadExt, BufReader};
+use tokio::prelude::*;
 use tokio::process::Command;
 use tokio::time::{delay_for, Duration};
 use tracing::info;
@@ -11,13 +17,24 @@ pub async fn spawn_process(
     vm_name: &str,
     state: State,
 ) -> Result<tokio::process::Child, RuntimeError> {
-    let child = Command::new(format!("{}/firecracker", state.assets_dir))
-        .args(&["--api-sock", &format!("./tmp/{}.socket", vm_name)])
+    let mut child = Command::new(format!("{}/firecracker", state.assets_dir))
+        .args(&[
+            "--api-sock",
+            &format!("{}/{}.socket", state.tmp_dir, vm_name),
+        ])
         .stdin(Stdio::null())
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
         .spawn()
-        .unwrap();
+        .expect("Failed to spawn vm child process");
+
+    let time = Local::now();
+
+    let stdout = child.stdout.take().expect("Failed to bind stdout on vm");
+    handle_io(stdout, &vm_name, "stdout", &state.log_dir, time);
+
+    let stderr = child.stderr.take().expect("Failed to bind stderr on vm");
+    handle_io(stderr, &vm_name, "stderr", &state.log_dir, time);
 
     //TODO: wait for file to appear?
     delay_for(Duration::from_millis(10)).await;
@@ -27,6 +44,33 @@ pub async fn spawn_process(
     start_machine(vm_name).await?;
 
     Ok(child)
+}
+
+fn handle_io<T: 'static + AsyncRead + Send + Sync + Unpin>(
+    io: T,
+    name: &str,
+    extension: &str,
+    log_dir: &str,
+    time: chrono::DateTime<chrono::Local>,
+) {
+    let name = String::from(name);
+    let extension = String::from(extension);
+    let log_dir = String::from(log_dir);
+
+    tokio::spawn(async move {
+        let mut reader = BufReader::new(io).lines();
+
+        let mut stdout = File::create(&format!("{}/{}-{}.{}", log_dir, name, time, extension))
+            .await
+            .expect("error opening stdout");
+
+        while let Some(line) = reader.next_line().await.unwrap() {
+            stdout
+                .write_all(format!("{}\n", line).as_bytes())
+                .await
+                .expect("failed to write to file");
+        }
+    });
 }
 
 pub async fn set_kernel(vm_name: &str, assets_dir: &str) -> Result<(), RuntimeError> {

@@ -24,7 +24,7 @@ pub fn create_folder(path: PathBuf) -> Result<(), std::io::Error> {
     match fs::read_dir(&path) {
         Ok(entries) => {
             if entries.peekable().peek().is_some() {
-                warn!("Warning: tmp dir not empty [{}]", path.display());
+                warn!("Warning: dir not empty [{}]", path.display());
             }
         }
         Err(e) => error!("Cannot read dir [{}]", e),

@@ -8,8 +8,8 @@ use tracing::info;
 
 mod api;
 mod error;
+mod folders;
 mod io;
-mod tmp;
 mod vm;
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -21,6 +21,7 @@ pub struct Vm {
 pub struct State {
     vms: Arc<Mutex<Vec<Vm>>>,
     tmp_dir: String,
+    log_dir: String,
     assets_dir: String,
     drive_name: String,
     kernel_name: String,
@@ -31,6 +32,7 @@ impl Clone for State {
         State {
             vms: self.vms.clone(),
             tmp_dir: self.tmp_dir.clone(),
+            log_dir: self.log_dir.clone(),
             assets_dir: self.assets_dir.clone(),
             drive_name: self.drive_name.clone(),
             kernel_name: self.kernel_name.clone(),
@@ -52,12 +54,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let state = State {
         vms: Arc::new(Mutex::new(Vec::new())),
         tmp_dir: String::from(matches.value_of("tmp_dir").unwrap()),
+        log_dir: String::from(matches.value_of("log_dir").unwrap()),
         assets_dir: String::from(matches.value_of("assets_dir").unwrap()),
         drive_name: String::from(matches.value_of("drive_name").unwrap()),
         kernel_name: String::from(matches.value_of("kernel_name").unwrap()),
     };
 
-    tmp::init(&state.tmp_dir)?;
+    folders::init(&state.tmp_dir)?;
+    folders::init(&state.log_dir)?;
 
     let port = matches.value_of("port").unwrap();
     let port: u16 = port.parse().unwrap();
