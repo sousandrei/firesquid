@@ -45,6 +45,12 @@ pub async fn handler(request: Request<Body>, state: State) -> Result<Response<Bo
         return Ok(response);
     };
 
-    let response = build_response(StatusCode::OK, String::from("Success"));
+    let response = build_response(
+        StatusCode::OK,
+        serde_json::json!({
+            "sucess": true,
+        })
+        .to_string(),
+    );
     Ok(response)
 }
