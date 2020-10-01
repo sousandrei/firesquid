@@ -6,6 +6,7 @@ assets/vmlinux
 
 firecracker
 tmp
+logs
 todo
 
 .vscode
