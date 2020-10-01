@@ -13,7 +13,6 @@ jobs:
     - rust: nightly
   fast_finish: true
 before_script:
-  - mkdir assets
   - curl https://storage.googleapis.com/firesquid/vmlinux -o assets/rootfs.ext4
   - curl https://storage.googleapis.com/firesquid/rootfs.ext4 -o assets/rootfs.ext4
   - curl https://github.com/firecracker-microvm/firecracker/releases/download/v0.22.0/firecracker-v0.22.0-x86_64 -o assets/firecracker
