@@ -1,21 +1,20 @@
 use hyper::{Body, Request, Response, StatusCode};
 use tracing::error;
 
-use super::VmInput;
+use super::{build_response, VmInput};
 use crate::State;
 
-pub async fn handler(req: Request<Body>, state: State) -> Result<Response<Body>, hyper::Error> {
-    let body_bytes = &hyper::body::to_bytes(req.into_body()).await?;
+//TODO: process kill into vm package
+pub async fn handler(request: Request<Body>, state: State) -> Result<Response<Body>, hyper::Error> {
+    let body_bytes = &hyper::body::to_bytes(request.into_body()).await?;
 
     let body: VmInput = match serde_json::from_slice(body_bytes) {
         Ok(j) => j,
         Err(e) => {
             error!("{}", e);
 
-            let mut error = Response::default();
-            *error.status_mut() = StatusCode::BAD_REQUEST;
-            *error.body_mut() = Body::from(e.to_string());
-            return Ok(error);
+            let response = build_response(StatusCode::OK, e.to_string());
+            return Ok(response);
         }
     };
 
@@ -29,10 +28,11 @@ pub async fn handler(req: Request<Body>, state: State) -> Result<Response<Body>,
     }
 
     if pid == 0 {
-        let mut error = Response::default();
-        *error.status_mut() = StatusCode::BAD_REQUEST;
-        *error.body_mut() = Body::from(format!("machine not found: {}", body.vm_name));
-        return Ok(error);
+        let response = build_response(
+            StatusCode::OK,
+            format!("Machine not found: {}", body.vm_name),
+        );
+        return Ok(response);
     }
 
     let child = tokio::process::Command::new("kill")
@@ -41,13 +41,10 @@ pub async fn handler(req: Request<Body>, state: State) -> Result<Response<Body>,
         .unwrap();
 
     if let Err(e) = child.await {
-        let mut error = Response::default();
-        *error.status_mut() = StatusCode::BAD_REQUEST;
-        *error.body_mut() = Body::from(format!("error killing vm: {}", e));
-        return Ok(error);
+        let response = build_response(StatusCode::OK, format!("Error killing vm: {}", e));
+        return Ok(response);
     };
 
-    let mut res = Response::default();
-    *res.body_mut() = Body::from("success");
-    Ok(res)
+    let response = build_response(StatusCode::OK, String::from("Success"));
+    Ok(response)
 }

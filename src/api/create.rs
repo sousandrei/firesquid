@@ -4,38 +4,26 @@ use tracing::error;
 use super::VmInput;
 use crate::{vm, State};
 
-pub async fn handler(req: Request<Body>, state: State) -> Result<Response<Body>, hyper::Error> {
-    let body_bytes = &hyper::body::to_bytes(req.into_body()).await?;
+pub async fn handler(request: Request<Body>, state: State) -> Result<Response<Body>, hyper::Error> {
+    let body_bytes = &hyper::body::to_bytes(request.into_body()).await?;
 
     let body: VmInput = match serde_json::from_slice(body_bytes) {
         Ok(j) => j,
         Err(e) => {
             error!("{}", e);
 
-            let mut error = Response::default();
-            *error.status_mut() = StatusCode::BAD_REQUEST;
-            *error.body_mut() = Body::from(e.to_string());
-            return Ok(error);
+            let response = super::build_response(StatusCode::BAD_REQUEST, e.to_string());
+            return Ok(response);
         }
     };
 
-    match vm::spawn(&body.vm_name, state).await {
-        Ok(_) => {}
-        Err(e) => {
-            error!("{}", e);
+    if let Err(e) = vm::spawn(&body.vm_name, state).await {
+        error!("{}", e);
 
-            let mut error = Response::default();
-            *error.status_mut() = StatusCode::BAD_REQUEST;
-            *error.body_mut() = Body::from(e.to_string());
-            return Ok(error);
-        }
+        let response = super::build_response(StatusCode::BAD_REQUEST, e.to_string());
+        return Ok(response);
     };
 
-    let response_json = serde_json::json!({
-        "vm_name": body.vm_name,
-        "status":"finished"
-    });
-
-    let response = serde_json::to_string_pretty(&response_json).unwrap();
-    Ok(Response::new(Body::from(response)))
+    let response = super::build_response(StatusCode::OK, String::from("Success"));
+    Ok(response)
 }
