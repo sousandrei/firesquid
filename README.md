@@ -23,6 +23,7 @@
 - [Features](#features)
 - [Assets](#assets)
 - [Help Wanted](#help-wanted)
+- [Sponsors](#sponsors)
 - [License](#license)
 
 ## <a name="about"></a> About the Project
@@ -37,12 +38,6 @@ It abstracts the hard part making it a breeze to spawn your very own fleet of mi
 - Lightweight
 - Customizable
 
-## <a name="help-wanted"></a> Help wanted 🤝
-
-All contributions are welcome!
-
-If you are using or plan to use Firecracker or FireSquid please don't hesitate to reach out so we can foster a collaboration ecosystem around Firecracker.
-
 ## <a name="help-wanted"></a> Assets 📦
 
 Here are some assets to get you started. The default folder for assets is just called `assets` in the same folder as FireSquid.
@@ -52,6 +47,12 @@ Here are some assets to get you started. The default folder for assets is just c
 [sample rootfs.ext4][rootfs] build from the `node-alpine` docker image. Boots, sleeps 3 seconds and then powers off.
 
 [firecracker][firecracker] releases, grab one accordingly
+
+## <a name="help-wanted"></a> Help wanted 🤝
+
+All contributions are welcome!
+
+If you are using or plan to use Firecracker or FireSquid please don't hesitate to reach out so we can foster a collaboration ecosystem around Firecracker.
 
 ## <a name="sponsors"></a> Sponsors ❤️
 
