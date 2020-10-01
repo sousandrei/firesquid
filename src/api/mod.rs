@@ -31,3 +31,12 @@ pub async fn router(req: Request<Body>, state: State) -> Result<Response<Body>, 
         }
     }
 }
+
+fn build_response(status: StatusCode, body: String) -> hyper::Response<hyper::Body> {
+    return Response::builder()
+        .header("Accept", "application/json")
+        .header("Content-Type", "application/json")
+        .status(status)
+        .body(Body::from(body))
+        .unwrap();
+}
