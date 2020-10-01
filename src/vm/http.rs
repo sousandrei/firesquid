@@ -15,8 +15,8 @@ pub async fn send_request(vm_name: &str, url: &str, body: &str) -> Result<(), Ru
     let req = match Request::builder()
         .method(Method::PUT)
         .uri(url)
-        .header("Accept", "Accept: application/json")
-        .header("Content-Type", "Accept: application/json")
+        .header("Accept", "application/json")
+        .header("Content-Type", "application/json")
         .body(Body::from(body.to_owned()))
     {
         Ok(req) => req,
