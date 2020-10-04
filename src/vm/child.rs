@@ -66,7 +66,7 @@ fn handle_io<T: 'static + AsyncRead + Send + Sync + Unpin>(
             .await
             .expect("error opening stdout");
 
-        while let Some(line) = reader.next_line().await.unwrap() {
+        while let Some(line) = reader.next_line().await.unwrap_or(Option::None) {
             stdout
                 .write_all(format!("{}\n", line).as_bytes())
                 .await
