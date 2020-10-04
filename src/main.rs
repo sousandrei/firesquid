@@ -4,6 +4,7 @@ use hyper::Server;
 use serde::{Deserialize, Serialize};
 use std::env;
 use std::sync::Arc;
+use tokio::signal::unix::{signal, SignalKind};
 use tokio::sync::Mutex;
 use tracing::info;
 
@@ -98,7 +99,31 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     info!("Listening on http://{}", addr);
 
-    server.await?;
+    let (tx, rx) = tokio::sync::oneshot::channel::<()>();
+    let graceful = server.with_graceful_shutdown(async {
+        rx.await.ok();
+    });
+
+    tokio::task::spawn(async move {
+        let kind = SignalKind::interrupt();
+        let mut stream = signal(kind).expect("error opening signal stream");
+
+        loop {
+            stream.recv().await;
+            info!("Termination initiated");
+            break;
+        }
+        tx.send(()).expect("error sending shutdown signal");
+    });
+
+    graceful.await?;
+
+    //TODO: function to clear state
+    // let vms = state.vms.lock().unwrap();
+    // for a in vms.iter() {
+    //     println!("{}", a.name);
+    //     vm::terminate(&a.name).await?;
+    // }
 
     Ok(())
 }
