@@ -25,15 +25,29 @@ pub async fn spawn(name: &str, state_ptr: StatePtr) -> Result<(), RuntimeError> 
             drive::create_drive(&name, &state.tmp_dir, &state.assets_dir, &state.drive_name)
         {
             drive::delete_drive(&name, &state.tmp_dir)?;
-            socket::delete_socket(&name, &state.tmp_dir).unwrap();
+            socket::delete_socket(&name, &state.tmp_dir)?;
             return Err(RuntimeError::new("Error creating drive"));
         };
     }
 
     task::spawn(async move {
-        let child = child::spawn_process(&name, state_ptr.clone())
-            .await
-            .unwrap();
+        let child = match child::spawn_process(&name, state_ptr.clone()).await {
+            Ok(i) => i,
+            Err(e) => {
+                return {
+                    error!(
+                        "Failed to start machine, proceeding to teardown [{}, {}]",
+                        &name,
+                        e.to_string()
+                    );
+                    {
+                        let state = state_ptr.lock().await;
+                        drive::delete_drive(&name, &state.tmp_dir).unwrap();
+                        socket::delete_socket(&name, &state.tmp_dir).unwrap();
+                    }
+                }
+            }
+        };
 
         {
             let mut state = state_ptr.lock().await;
