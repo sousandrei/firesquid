@@ -7,35 +7,52 @@ use tokio::task;
 use tracing::{error, info};
 
 use crate::error::RuntimeError;
-use crate::State;
-use crate::Vm;
+use crate::{StatePtr, Vm};
 
-pub async fn spawn(name: &str, state: State) -> Result<(), RuntimeError> {
+pub async fn spawn(name: &str, state_ptr: StatePtr) -> Result<(), RuntimeError> {
     let name = String::from(name);
 
     {
-        let vms = state.vms.lock().unwrap();
-        if let Some(_) = vms.iter().position(|vm| vm.name == name) {
+        let state = state_ptr.lock().await;
+        if let Some(_) = state.vms.iter().position(|vm| vm.name == name) {
             return Err(RuntimeError::new(&format!(
                 "Vm name already used [{}]",
                 name
             )));
         }
+
+        if let Err(_) =
+            drive::create_drive(&name, &state.tmp_dir, &state.assets_dir, &state.drive_name)
+        {
+            drive::delete_drive(&name, &state.tmp_dir)?;
+            socket::delete_socket(&name, &state.tmp_dir)?;
+            return Err(RuntimeError::new("Error creating drive"));
+        };
     }
 
-    if let Err(_) = drive::create_drive(&name, &state.tmp_dir, &state.assets_dir) {
-        drive::delete_drive(&name, &state.tmp_dir)?;
-        socket::delete_socket(&name, &state.tmp_dir).unwrap();
-
-        return Err(RuntimeError::new("Error creating drive"));
-    };
-
     task::spawn(async move {
-        let child = child::spawn_process(&name, state.clone()).await.unwrap();
-        {
-            let mut vms = state.vms.lock().unwrap();
+        let child = match child::spawn_process(&name, state_ptr.clone()).await {
+            Ok(i) => i,
+            Err(e) => {
+                return {
+                    error!(
+                        "Failed to start machine, proceeding to teardown [{}, {}]",
+                        &name,
+                        e.to_string()
+                    );
+                    {
+                        let state = state_ptr.lock().await;
+                        drive::delete_drive(&name, &state.tmp_dir).unwrap();
+                        socket::delete_socket(&name, &state.tmp_dir).unwrap();
+                    }
+                }
+            }
+        };
 
-            vms.push(Vm {
+        {
+            let mut state = state_ptr.lock().await;
+
+            state.vms.push(Vm {
                 name: name.clone(),
                 pid: child.id(),
             });
@@ -48,12 +65,15 @@ pub async fn spawn(name: &str, state: State) -> Result<(), RuntimeError> {
             );
         };
 
-        drive::delete_drive(&name, &state.tmp_dir).unwrap();
-        socket::delete_socket(&name, &state.tmp_dir).unwrap();
+        {
+            let mut state = state_ptr.lock().await;
 
-        let mut vms = state.vms.lock().unwrap();
-        if let Some(index) = vms.iter().position(|vm| vm.name == name) {
-            vms.remove(index);
+            drive::delete_drive(&name, &state.tmp_dir).unwrap();
+            socket::delete_socket(&name, &state.tmp_dir).unwrap();
+
+            if let Some(index) = state.vms.iter().position(|vm| vm.name == name) {
+                state.vms.remove(index);
+            }
         }
 
         info!("Terminated [{}]", name);

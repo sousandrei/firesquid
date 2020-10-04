@@ -1,15 +1,24 @@
 use hyper::{Body, Response, StatusCode};
 
-use crate::State;
+use super::build_response;
+use crate::StatePtr;
 
-pub async fn handler(state: State) -> Result<Response<Body>, hyper::Error> {
-    let state = state.vms.lock().unwrap();
-    let state = &*state;
+pub async fn handler(state_ptr: StatePtr) -> Result<Response<Body>, hyper::Error> {
+    let state = state_ptr.lock().await;
 
-    let response_json = serde_json::json!(state);
+    let response_json = serde_json::json!(state.vms);
 
-    let body = serde_json::to_string_pretty(&response_json).unwrap();
+    let body = match serde_json::to_string_pretty(&response_json) {
+        Ok(b) => b,
+        Err(e) => {
+            let response = build_response(
+                StatusCode::OK,
+                format!("Error parsing state [{}]", e.to_string()),
+            );
+            return Ok(response);
+        }
+    };
 
-    let response = super::build_response(StatusCode::OK, body);
+    let response = build_response(StatusCode::OK, body);
     Ok(response)
 }

@@ -11,12 +11,14 @@ use tracing::info;
 
 use crate::error::RuntimeError;
 use crate::vm::http;
-use crate::State;
+use crate::StatePtr;
 
 pub async fn spawn_process(
     vm_name: &str,
-    state: State,
+    state_ptr: StatePtr,
 ) -> Result<tokio::process::Child, RuntimeError> {
+    let state = state_ptr.lock().await;
+
     let mut child = Command::new(format!("{}/firecracker", state.assets_dir))
         .args(&[
             "--api-sock",
@@ -39,7 +41,7 @@ pub async fn spawn_process(
     //TODO: wait for file to appear?
     delay_for(Duration::from_millis(10)).await;
 
-    set_kernel(vm_name, &state.assets_dir).await?;
+    set_kernel(vm_name, &state.assets_dir, &state.kernel_name).await?;
     set_drive(vm_name, &state.tmp_dir).await?;
     start_machine(vm_name).await?;
 
@@ -64,7 +66,7 @@ fn handle_io<T: 'static + AsyncRead + Send + Sync + Unpin>(
             .await
             .expect("error opening stdout");
 
-        while let Some(line) = reader.next_line().await.unwrap() {
+        while let Some(line) = reader.next_line().await.unwrap_or(Option::None) {
             stdout
                 .write_all(format!("{}\n", line).as_bytes())
                 .await
@@ -73,30 +75,36 @@ fn handle_io<T: 'static + AsyncRead + Send + Sync + Unpin>(
     });
 }
 
-pub async fn set_kernel(vm_name: &str, assets_dir: &str) -> Result<(), RuntimeError> {
+pub async fn set_kernel(
+    vm_name: &str,
+    assets_dir: &str,
+    kernel_name: &str,
+) -> Result<(), RuntimeError> {
     let url = "/boot-source";
+    let kernel_path = format!("{}/{}", assets_dir, kernel_name);
 
     let body = serde_json::json!({
-        "kernel_image_path": format!("{}/vmlinux", assets_dir),
+        "kernel_image_path": kernel_path,
         "boot_args": "console=ttyS0 reboot=k panic=1 pci=off"
     });
 
-    info!("Set Kernel [{}]", vm_name);
+    info!("Set Kernel [{}, {}]", vm_name, kernel_path);
 
     http::send_request(vm_name, url, &body.to_string()).await
 }
 
 pub async fn set_drive(vm_name: &str, tmp_dir: &str) -> Result<(), RuntimeError> {
     let url = "/drives/rootfs";
+    let drive_path = format!("{}/{}.ext4", tmp_dir, vm_name);
 
     let body = serde_json::json!({
         "drive_id": "rootfs",
-        "path_on_host": format!("{}/{}.ext4", tmp_dir, vm_name),
+        "path_on_host": drive_path,
         "is_root_device": true,
         "is_read_only": false
     });
 
-    info!("Set Drive [{}]", vm_name);
+    info!("Set Drive [{}, {}]", vm_name, drive_path);
 
     http::send_request(vm_name, url, &body.to_string()).await
 }

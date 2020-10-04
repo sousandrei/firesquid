@@ -3,7 +3,8 @@ use hyper::service::{make_service_fn, service_fn};
 use hyper::Server;
 use serde::{Deserialize, Serialize};
 use std::env;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
+use tokio::sync::Mutex;
 use tracing::info;
 
 mod api;
@@ -18,26 +19,15 @@ pub struct Vm {
     pid: u32,
 }
 
+pub type StatePtr = Arc<Mutex<State>>;
+
 pub struct State {
-    vms: Arc<Mutex<Vec<Vm>>>,
+    vms: Vec<Vm>,
     tmp_dir: String,
     log_dir: String,
     assets_dir: String,
     drive_name: String,
     kernel_name: String,
-}
-
-impl Clone for State {
-    fn clone(&self) -> State {
-        State {
-            vms: self.vms.clone(),
-            tmp_dir: self.tmp_dir.clone(),
-            log_dir: self.log_dir.clone(),
-            assets_dir: self.assets_dir.clone(),
-            drive_name: self.drive_name.clone(),
-            kernel_name: self.kernel_name.clone(),
-        }
-    }
 }
 
 #[tokio::main]
@@ -51,25 +41,51 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let yaml = load_yaml!("cli.yml");
     let matches = App::from_yaml(yaml).get_matches();
 
+    let tmp_dir = matches
+        .value_of("tmp_dir")
+        .ok_or(error::RuntimeError::new("Invalid parameter [tmp_dir]"))?;
+
+    let log_dir = matches
+        .value_of("log_dir")
+        .ok_or(error::RuntimeError::new("Invalid parameter [log_dir]"))?;
+
+    let assets_dir = matches
+        .value_of("assets_dir")
+        .ok_or(error::RuntimeError::new("Invalid parameter [assets_dir]"))?;
+
+    let drive_name = matches
+        .value_of("drive_name")
+        .ok_or(error::RuntimeError::new("Invalid parameter [drive_name]"))?;
+
+    let kernel_name = matches
+        .value_of("kernel_name")
+        .ok_or(error::RuntimeError::new("Invalid parameter [kernel_name]"))?;
+
+    let port = matches
+        .value_of("port")
+        .ok_or(error::RuntimeError::new("Invalid parameter [port]"))?;
+
+    let port: u16 = port.parse()?;
+
+    //TODO: figure it &str is better than String here
     let state = State {
-        vms: Arc::new(Mutex::new(Vec::new())),
-        tmp_dir: String::from(matches.value_of("tmp_dir").unwrap()),
-        log_dir: String::from(matches.value_of("log_dir").unwrap()),
-        assets_dir: String::from(matches.value_of("assets_dir").unwrap()),
-        drive_name: String::from(matches.value_of("drive_name").unwrap()),
-        kernel_name: String::from(matches.value_of("kernel_name").unwrap()),
+        vms: Vec::new(),
+        tmp_dir: String::from(tmp_dir),
+        log_dir: String::from(log_dir),
+        assets_dir: String::from(assets_dir),
+        drive_name: String::from(drive_name),
+        kernel_name: String::from(kernel_name),
     };
 
     folders::init(&state.tmp_dir)?;
     folders::init(&state.log_dir)?;
 
-    let port = matches.value_of("port").unwrap();
-    let port: u16 = port.parse().unwrap();
-
     let addr = ([127, 0, 0, 1], port).into();
 
+    let state_ptr = Arc::new(Mutex::new(state));
+
     let service = make_service_fn(|_| {
-        let state = state.clone();
+        let state = state_ptr.clone();
         async {
             Ok::<_, hyper::Error>(service_fn(move |req| {
                 let state = state.clone();
@@ -78,7 +94,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         }
     });
 
-    let server = Server::bind(&addr).serve(service);
+    let server = Server::try_bind(&addr)?.serve(service);
 
     info!("Listening on http://{}", addr);
 
