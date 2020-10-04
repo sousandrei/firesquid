@@ -2,9 +2,12 @@ use hyper::{Body, Request, Response, StatusCode};
 use tracing::error;
 
 use super::VmInput;
-use crate::{vm, State};
+use crate::{vm, StatePtr};
 
-pub async fn handler(request: Request<Body>, state: State) -> Result<Response<Body>, hyper::Error> {
+pub async fn handler(
+    request: Request<Body>,
+    state_ptr: StatePtr,
+) -> Result<Response<Body>, hyper::Error> {
     let body_bytes = &hyper::body::to_bytes(request.into_body()).await?;
 
     let body: VmInput = match serde_json::from_slice(body_bytes) {
@@ -18,8 +21,8 @@ pub async fn handler(request: Request<Body>, state: State) -> Result<Response<Bo
     };
 
     {
-        let vms = state.vms.lock().unwrap();
-        if let None = vms.iter().find(|vm| vm.name == body.vm_name) {
+        let state = state_ptr.lock().await;
+        if let None = state.vms.iter().find(|vm| vm.name == body.vm_name) {
             let response = super::build_response(
                 StatusCode::BAD_REQUEST,
                 format!("Machine not found: {}", body.vm_name),
