@@ -61,6 +61,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         .value_of("kernel_name")
         .ok_or(error::RuntimeError::new("Invalid parameter [kernel_name]"))?;
 
+    let port = matches
+        .value_of("port")
+        .ok_or(error::RuntimeError::new("Invalid parameter [port]"))?;
+
+    let port: u16 = port.parse()?;
+
     //TODO: figure it &str is better than String here
     let state = State {
         vms: Vec::new(),
@@ -73,9 +79,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     folders::init(&state.tmp_dir)?;
     folders::init(&state.log_dir)?;
-
-    let port = matches.value_of("port").unwrap();
-    let port: u16 = port.parse().unwrap();
 
     let addr = ([127, 0, 0, 1], port).into();
 
@@ -91,7 +94,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         }
     });
 
-    let server = Server::bind(&addr).serve(service);
+    let server = Server::try_bind(&addr)?.serve(service);
 
     info!("Listening on http://{}", addr);
 
