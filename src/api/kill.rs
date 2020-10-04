@@ -38,10 +38,16 @@ pub async fn handler(
         return Ok(response);
     }
 
-    let child = tokio::process::Command::new("kill")
+    let child = match tokio::process::Command::new("kill")
         .arg(pid.to_string())
         .spawn()
-        .unwrap();
+    {
+        Ok(c) => c,
+        Err(e) => {
+            let response = build_response(StatusCode::OK, format!("Error killing vm: {}", e));
+            return Ok(response);
+        }
+    };
 
     if let Err(e) = child.await {
         let response = build_response(StatusCode::OK, format!("Error killing vm: {}", e));

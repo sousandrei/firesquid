@@ -36,10 +36,21 @@ pub async fn router(
 }
 
 fn build_response(status: StatusCode, body: String) -> hyper::Response<hyper::Body> {
-    return Response::builder()
+    match Response::builder()
         .header("Accept", "application/json")
         .header("Content-Type", "application/json")
         .status(status)
         .body(Body::from(body))
-        .unwrap();
+    {
+        Ok(r) => r,
+        Err(e) => Response::builder()
+            .header("Accept", "application/json")
+            .header("Content-Type", "application/json")
+            .status(StatusCode::INTERNAL_SERVER_ERROR)
+            .body(Body::from(format!(
+                "Error forming response [{}]",
+                e.to_string()
+            )))
+            .unwrap_or_default(),
+    }
 }
