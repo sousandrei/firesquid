@@ -20,21 +20,21 @@ pub async fn send_request(vm_name: &str, url: &str, body: &str) -> Result<(), Ru
         .body(Body::from(body.to_owned()))
     {
         Ok(req) => req,
-        Err(_) => {
-            let msg = format!("Error building request [{}]", vm_path);
+        Err(e) => {
+            let msg = format!("Error building request [{}, {}]", vm_path, e.to_string());
             return Err(RuntimeError::new(&msg));
         }
     };
 
     let res = match client.request(req).await {
         Ok(res) => res,
-        Err(_) => {
-            let msg = format!("Error getting response [{}]", vm_path);
+        Err(e) => {
+            let msg = format!("Error getting response [{}, {}]", vm_path, e.to_string());
             return Err(RuntimeError::new(&msg));
         }
     };
 
-    info!("{} {}", path.display(), res.status());
+    info!("{}, {}", path.display(), res.status());
 
     Ok(())
 }
