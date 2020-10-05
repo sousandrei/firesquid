@@ -5,8 +5,9 @@ use serde::{Deserialize, Serialize};
 use std::env;
 use std::sync::Arc;
 use tokio::signal::unix::{signal, SignalKind};
+use tokio::sync::mpsc;
 use tokio::sync::Mutex;
-use tracing::info;
+use tracing::{error, info};
 
 mod api;
 mod error;
@@ -99,31 +100,72 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     info!("Listening on http://{}", addr);
 
-    let (tx, rx) = tokio::sync::oneshot::channel::<()>();
+    let (tx, mut rx) = mpsc::channel(1);
+
     let graceful = server.with_graceful_shutdown(async {
-        rx.await.ok();
+        rx.recv().await;
+        info!("Shutting down hyper server");
     });
 
-    tokio::task::spawn(async move {
-        let kind = SignalKind::interrupt();
-        let mut stream = signal(kind).expect("error opening signal stream");
-
-        loop {
-            stream.recv().await;
-            info!("Termination initiated");
-            break;
-        }
-        tx.send(()).expect("error sending shutdown signal");
-    });
+    listen_for_signal(tx.clone(), SignalKind::interrupt());
+    listen_for_signal(tx.clone(), SignalKind::terminate());
 
     graceful.await?;
 
-    //TODO: function to clear state
-    // let vms = state.vms.lock().unwrap();
-    // for a in vms.iter() {
-    //     println!("{}", a.name);
-    //     vm::terminate(&a.name).await?;
-    // }
+    let state = state_ptr.lock().await;
+    for v in state.vms.iter() {
+        info!("Terminating [{}]", v.name);
+
+        if let Err(e) = vm::terminate(&v.name).await {
+            error!("Error on termination [{}, {}]", v.name, e.to_string());
+        }
+    }
+
+    // Holds the process open for last machines
+    for v in state.vms.iter() {
+        loop {
+            match get_process(v.pid).await {
+                Ok(value) => match value {
+                    false => break,
+                    true => {}
+                },
+                Err(e) => {
+                    error!("Error on checking process [{}, {}]", v.name, e.to_string());
+                    break;
+                }
+            }
+        }
+    }
 
     Ok(())
+}
+
+async fn get_process(pid: u32) -> Result<bool, std::io::Error> {
+    match tokio::process::Command::new("ls")
+        .arg("/proc")
+        .output()
+        .await
+    {
+        Err(e) => Err(e),
+        Ok(output) => {
+            let output = String::from_utf8_lossy(&output.stdout);
+            let output: Vec<&str> = output.split("\n").collect();
+
+            Ok(output.contains(&pid.to_string().as_str()))
+        }
+    }
+}
+
+fn listen_for_signal(mut tx: tokio::sync::mpsc::Sender<SignalKind>, kind: SignalKind) {
+    tokio::task::spawn(async move {
+        let mut stream = signal(kind).expect(&format!("Error opening signal stream [{:?}]", kind));
+
+        loop {
+            stream.recv().await;
+            info!("Termination signal received");
+            break;
+        }
+
+        tx.send(kind).await.unwrap();
+    });
 }
