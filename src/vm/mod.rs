@@ -7,7 +7,7 @@ use tokio::task;
 use tracing::{error, info};
 
 use crate::error::RuntimeError;
-use crate::{StatePtr, Vm};
+use crate::state::{StatePtr, Vm};
 
 pub async fn spawn(name: &str, state_ptr: StatePtr) -> Result<(), RuntimeError> {
     let name = String::from(name);

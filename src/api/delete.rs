@@ -2,7 +2,8 @@ use hyper::{Body, Request, Response, StatusCode};
 use tracing::error;
 
 use super::VmInput;
-use crate::{vm, StatePtr};
+use crate::state::StatePtr;
+use crate::vm;
 
 pub async fn handler(
     request: Request<Body>,
