@@ -6,7 +6,7 @@ mod delete;
 mod kill;
 mod list;
 
-use crate::{StatePtr, Vm};
+use crate::state::{StatePtr, Vm};
 
 #[derive(Serialize, Deserialize, Debug)]
 struct VmInput {

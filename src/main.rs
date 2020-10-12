@@ -1,7 +1,6 @@
 use clap::{load_yaml, App};
 use hyper::service::{make_service_fn, service_fn};
 use hyper::Server;
-use serde::{Deserialize, Serialize};
 use std::env;
 use std::sync::Arc;
 use tokio::signal::unix::{signal, SignalKind};
@@ -13,24 +12,10 @@ mod api;
 mod error;
 mod folders;
 mod io;
+mod state;
 mod vm;
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct Vm {
-    name: String,
-    pid: u32,
-}
-
-pub type StatePtr = Arc<Mutex<State>>;
-
-pub struct State {
-    vms: Vec<Vm>,
-    tmp_dir: String,
-    log_dir: String,
-    assets_dir: String,
-    drive_name: String,
-    kernel_name: String,
-}
+use crate::state::State;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {

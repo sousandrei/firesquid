@@ -1,7 +1,7 @@
 use hyper::{Body, Response, StatusCode};
 
 use super::build_response;
-use crate::StatePtr;
+use crate::state::StatePtr;
 
 pub async fn handler(state_ptr: StatePtr) -> Result<Response<Body>, hyper::Error> {
     let state = state_ptr.lock().await;

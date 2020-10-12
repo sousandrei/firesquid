@@ -10,8 +10,8 @@ use tokio::time::{delay_for, Duration};
 use tracing::info;
 
 use crate::error::RuntimeError;
+use crate::state::StatePtr;
 use crate::vm::http;
-use crate::StatePtr;
 
 pub async fn spawn_process(
     vm_name: &str,
