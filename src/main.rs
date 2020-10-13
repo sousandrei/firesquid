@@ -4,7 +4,7 @@ use std::env;
 use std::sync::Arc;
 use tokio::signal::unix::{signal, SignalKind};
 use tokio::sync::mpsc;
-use tokio::sync::Mutex;
+use tokio::sync::RwLock;
 use tracing::{error, info};
 
 mod api;
@@ -32,7 +32,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     };
 
     let state = State {
-        vms: Arc::new(Mutex::new(Vec::new())),
+        vms: Arc::new(RwLock::new(Vec::new())),
         tmp_dir: cli_options.tmp_dir,
         log_dir: cli_options.log_dir,
         assets_dir: cli_options.assets_dir,
@@ -73,7 +73,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     graceful.await?;
 
-    let vms = state_ptr.vms.lock().await;
+    let vms = state_ptr.vms.read().await;
 
     for v in vms.iter() {
         info!("Terminating [{}]", v.name);
