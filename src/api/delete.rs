@@ -2,6 +2,7 @@ use hyper::{Body, Request, Response, StatusCode};
 use tracing::error;
 
 use super::VmInput;
+use crate::state;
 use crate::state::StatePtr;
 use crate::vm;
 
@@ -21,16 +22,13 @@ pub async fn handler(
         }
     };
 
-    {
-        let vms = state_ptr.vms.lock().await;
-        if let None = vms.iter().find(|vm| vm.name == body.vm_name) {
-            let response = super::build_response(
-                StatusCode::BAD_REQUEST,
-                format!("Machine not found: {}", body.vm_name),
-            );
-            return Ok(response);
-        };
-    }
+    if let None = state::get_vm_pid(state_ptr.clone(), body.vm_name.clone()).await {
+        let response = super::build_response(
+            StatusCode::BAD_REQUEST,
+            format!("Machine not found: {}", body.vm_name),
+        );
+        return Ok(response);
+    };
 
     if let Err(e) = vm::terminate(&body.vm_name).await {
         let response = super::build_response(
