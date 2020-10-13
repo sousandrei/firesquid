@@ -15,14 +15,12 @@ use crate::vm::http;
 
 pub async fn spawn_process(
     vm_name: &str,
-    state_ptr: StatePtr,
+    state: StatePtr,
 ) -> Result<tokio::process::Child, RuntimeError> {
-    let state = state_ptr.lock().await;
-
-    let mut child = Command::new(format!("{}/firecracker", state.assets_dir))
+    let mut child = Command::new(format!("{}/firecracker", &state.assets_dir))
         .args(&[
             "--api-sock",
-            &format!("{}/{}.socket", state.tmp_dir, vm_name),
+            &format!("{}/{}.socket", &state.tmp_dir, vm_name),
         ])
         .stdin(Stdio::null())
         .stdout(Stdio::piped())

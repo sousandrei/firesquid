@@ -8,13 +8,13 @@ pub struct Vm {
     pub pid: u32,
 }
 
-pub type StatePtr = Arc<Mutex<State>>;
-
 pub struct State {
-    pub vms: Vec<Vm>,
+    pub vms: Arc<Mutex<Vec<Vm>>>,
     pub tmp_dir: String,
     pub log_dir: String,
     pub assets_dir: String,
     pub drive_name: String,
     pub kernel_name: String,
 }
+
+pub type StatePtr = Arc<State>;
