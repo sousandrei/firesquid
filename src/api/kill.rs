@@ -2,7 +2,8 @@ use hyper::{Body, Request, Response, StatusCode};
 use tracing::error;
 
 use super::{build_response, VmInput};
-use crate::StatePtr;
+use crate::state;
+use crate::state::StatePtr;
 
 //TODO: process kill into vm package
 pub async fn handler(
@@ -21,14 +22,10 @@ pub async fn handler(
         }
     };
 
-    let mut pid: u32 = 0;
-
-    {
-        let state = state_ptr.lock().await;
-        if let Some(vm) = state.vms.iter().find(|vm| vm.name == body.vm_name) {
-            pid = vm.pid;
-        };
-    }
+    let pid: u32 = match state::get_vm_pid(state_ptr.clone(), &body.vm_name).await {
+        Some(p) => p,
+        None => 0,
+    };
 
     if pid == 0 {
         let response = build_response(

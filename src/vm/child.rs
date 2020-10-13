@@ -10,19 +10,17 @@ use tokio::time::{delay_for, Duration};
 use tracing::info;
 
 use crate::error::RuntimeError;
+use crate::state::StatePtr;
 use crate::vm::http;
-use crate::StatePtr;
 
 pub async fn spawn_process(
     vm_name: &str,
-    state_ptr: StatePtr,
+    state: StatePtr,
 ) -> Result<tokio::process::Child, RuntimeError> {
-    let state = state_ptr.lock().await;
-
-    let mut child = Command::new(format!("{}/firecracker", state.assets_dir))
+    let mut child = Command::new(format!("{}/firecracker", &state.assets_dir))
         .args(&[
             "--api-sock",
-            &format!("{}/{}.socket", state.tmp_dir, vm_name),
+            &format!("{}/{}.socket", &state.tmp_dir, vm_name),
         ])
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
@@ -33,10 +31,10 @@ pub async fn spawn_process(
     let time = Local::now();
 
     let stdout = child.stdout.take().expect("Failed to bind stdout on vm");
-    handle_io(stdout, &vm_name, "stdout", &state.log_dir, time);
+    handle_io(stdout, vm_name, "stdout", &state.log_dir, time);
 
     let stderr = child.stderr.take().expect("Failed to bind stderr on vm");
-    handle_io(stderr, &vm_name, "stderr", &state.log_dir, time);
+    handle_io(stderr, vm_name, "stderr", &state.log_dir, time);
 
     //TODO: wait for file to appear?
     delay_for(Duration::from_millis(10)).await;
