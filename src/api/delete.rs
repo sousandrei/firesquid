@@ -22,8 +22,8 @@ pub async fn handler(
     };
 
     {
-        let state = state_ptr.lock().await;
-        if let None = state.vms.iter().find(|vm| vm.name == body.vm_name) {
+        let vms = state_ptr.vms.lock().await;
+        if let None = vms.iter().find(|vm| vm.name == body.vm_name) {
             let response = super::build_response(
                 StatusCode::BAD_REQUEST,
                 format!("Machine not found: {}", body.vm_name),

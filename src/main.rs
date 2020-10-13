@@ -1,4 +1,3 @@
-use clap::{load_yaml, App};
 use hyper::service::{make_service_fn, service_fn};
 use hyper::Server;
 use std::env;
@@ -9,12 +8,14 @@ use tokio::sync::Mutex;
 use tracing::{error, info};
 
 mod api;
+mod cli;
 mod error;
 mod folders;
 mod io;
 mod state;
 mod vm;
 
+use crate::cli::generate_cli;
 use crate::state::State;
 
 #[tokio::main]
@@ -25,51 +26,26 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     tracing_subscriber::fmt::init();
 
-    let yaml = load_yaml!("cli.yml");
-    let matches = App::from_yaml(yaml).get_matches();
+    let cli_options = match generate_cli() {
+        Ok(options) => options,
+        Err(e) => return Err(e),
+    };
 
-    let tmp_dir = matches
-        .value_of("tmp_dir")
-        .ok_or(error::RuntimeError::new("Invalid parameter [tmp_dir]"))?;
-
-    let log_dir = matches
-        .value_of("log_dir")
-        .ok_or(error::RuntimeError::new("Invalid parameter [log_dir]"))?;
-
-    let assets_dir = matches
-        .value_of("assets_dir")
-        .ok_or(error::RuntimeError::new("Invalid parameter [assets_dir]"))?;
-
-    let drive_name = matches
-        .value_of("drive_name")
-        .ok_or(error::RuntimeError::new("Invalid parameter [drive_name]"))?;
-
-    let kernel_name = matches
-        .value_of("kernel_name")
-        .ok_or(error::RuntimeError::new("Invalid parameter [kernel_name]"))?;
-
-    let port = matches
-        .value_of("port")
-        .ok_or(error::RuntimeError::new("Invalid parameter [port]"))?;
-
-    let port: u16 = port.parse()?;
-
-    //TODO: figure it &str is better than String here
     let state = State {
-        vms: Vec::new(),
-        tmp_dir: String::from(tmp_dir),
-        log_dir: String::from(log_dir),
-        assets_dir: String::from(assets_dir),
-        drive_name: String::from(drive_name),
-        kernel_name: String::from(kernel_name),
+        vms: Arc::new(Mutex::new(Vec::new())),
+        tmp_dir: cli_options.tmp_dir,
+        log_dir: cli_options.log_dir,
+        assets_dir: cli_options.assets_dir,
+        drive_name: cli_options.drive_name,
+        kernel_name: cli_options.kernel_name,
     };
 
     folders::init(&state.tmp_dir)?;
     folders::init(&state.log_dir)?;
 
-    let addr = ([127, 0, 0, 1], port).into();
+    let addr = ([127, 0, 0, 1], cli_options.port).into();
 
-    let state_ptr = Arc::new(Mutex::new(state));
+    let state_ptr = Arc::new(state);
 
     let service = make_service_fn(|_| {
         let state = state_ptr.clone();
@@ -97,8 +73,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     graceful.await?;
 
-    let state = state_ptr.lock().await;
-    for v in state.vms.iter() {
+    let vms = state_ptr.vms.lock().await;
+
+    for v in vms.iter() {
         info!("Terminating [{}]", v.name);
 
         if let Err(e) = vm::terminate(&v.name).await {
@@ -107,7 +84,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     }
 
     // Holds the process open for last machines
-    for v in state.vms.iter() {
+    for v in vms.iter() {
         loop {
             match get_process(v.pid).await {
                 Ok(value) => match value {

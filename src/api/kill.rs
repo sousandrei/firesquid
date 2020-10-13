@@ -24,8 +24,8 @@ pub async fn handler(
     let mut pid: u32 = 0;
 
     {
-        let state = state_ptr.lock().await;
-        if let Some(vm) = state.vms.iter().find(|vm| vm.name == body.vm_name) {
+        let vms = state_ptr.vms.lock().await;
+        if let Some(vm) = vms.iter().find(|vm| vm.name == body.vm_name) {
             pid = vm.pid;
         };
     }
