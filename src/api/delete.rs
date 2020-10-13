@@ -22,7 +22,7 @@ pub async fn handler(
         }
     };
 
-    if let None = state::get_vm_pid(state_ptr.clone(), body.vm_name.clone()).await {
+    if let None = state::get_vm_pid(state_ptr.clone(), &body.vm_name).await {
         let response = super::build_response(
             StatusCode::BAD_REQUEST,
             format!("Machine not found: {}", body.vm_name),

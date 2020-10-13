@@ -31,10 +31,10 @@ pub async fn spawn_process(
     let time = Local::now();
 
     let stdout = child.stdout.take().expect("Failed to bind stdout on vm");
-    handle_io(stdout, &vm_name, "stdout", &state.log_dir, time);
+    handle_io(stdout, vm_name, "stdout", &state.log_dir, time);
 
     let stderr = child.stderr.take().expect("Failed to bind stderr on vm");
-    handle_io(stderr, &vm_name, "stderr", &state.log_dir, time);
+    handle_io(stderr, vm_name, "stderr", &state.log_dir, time);
 
     //TODO: wait for file to appear?
     delay_for(Duration::from_millis(10)).await;

@@ -22,7 +22,7 @@ pub async fn handler(
         }
     };
 
-    let pid: u32 = match state::get_vm_pid(state_ptr.clone(), body.vm_name.clone()).await {
+    let pid: u32 = match state::get_vm_pid(state_ptr.clone(), &body.vm_name).await {
         Some(p) => p,
         None => 0,
     };

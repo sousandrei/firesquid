@@ -30,16 +30,16 @@ pub async fn get_vms(state_ptr: StatePtr) -> Vec<Vm> {
     return new_vms;
 }
 
-pub async fn add_vm(state_ptr: StatePtr, name: String, pid: u32) {
+pub async fn add_vm(state_ptr: StatePtr, name: &str, pid: u32) {
     let mut vms = state_ptr.vms.lock().await;
 
     vms.push(Vm {
-        name: name,
+        name: String::from(name),
         pid: pid,
     });
 }
 
-pub async fn remove_vm(state_ptr: StatePtr, name: String) {
+pub async fn remove_vm(state_ptr: StatePtr, name: &str) {
     let mut vms = state_ptr.vms.lock().await;
 
     if let Some(index) = vms.iter().position(|vm| vm.name == name) {
@@ -47,7 +47,7 @@ pub async fn remove_vm(state_ptr: StatePtr, name: String) {
     }
 }
 
-pub async fn get_vm_pid(state_ptr: StatePtr, name: String) -> Option<u32> {
+pub async fn get_vm_pid(state_ptr: StatePtr, name: &str) -> Option<u32> {
     let vms = state_ptr.vms.lock().await;
 
     if let Some(index) = vms.iter().position(|vm| vm.name == name) {

@@ -11,12 +11,12 @@ use crate::state;
 use crate::state::StatePtr;
 
 pub async fn spawn(name: &str, state_ptr: StatePtr) -> Result<(), RuntimeError> {
-    let name = String::from(name);
+    let name = name.to_owned();
 
-    if let Some(_) = state::get_vm_pid(state_ptr.clone(), name.clone()).await {
+    if let Some(_) = state::get_vm_pid(state_ptr.clone(), &name).await {
         return Err(RuntimeError::new(&format!(
             "Vm name already used [{}]",
-            name
+            &name
         )));
     }
 
@@ -38,7 +38,7 @@ pub async fn spawn(name: &str, state_ptr: StatePtr) -> Result<(), RuntimeError> 
                 return {
                     error!(
                         "Failed to start machine, proceeding to teardown [{}, {}]",
-                        &name,
+                        name,
                         e.to_string()
                     );
 
@@ -48,21 +48,18 @@ pub async fn spawn(name: &str, state_ptr: StatePtr) -> Result<(), RuntimeError> 
             }
         };
 
-        state::add_vm(state_ptr.clone(), name.clone(), child.id()).await;
+        state::add_vm(state_ptr.clone(), &name, child.id()).await;
 
         if let Err(_) = child.await {
-            error!(
-                "Failed to start machine, proceeding to teardown [{}]",
-                &name
-            );
+            error!("Failed to start machine, proceeding to teardown [{}]", name);
         };
 
         drive::delete_drive(&name, &state_ptr.tmp_dir).unwrap();
         socket::delete_socket(&name, &state_ptr.tmp_dir).unwrap();
 
-        state::remove_vm(state_ptr.clone(), name.clone()).await;
+        state::remove_vm(state_ptr.clone(), &name).await;
 
-        info!("Terminated [{}]", name);
+        info!("Terminated [{}]", &name);
     });
 
     Ok(())

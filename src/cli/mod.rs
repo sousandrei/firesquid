@@ -43,11 +43,11 @@ pub fn generate_cli() -> Result<CliOptions, Box<dyn std::error::Error + Send + S
 
     let cli_options = CliOptions {
         port: port,
-        tmp_dir: String::from(tmp_dir),
-        log_dir: String::from(log_dir),
-        assets_dir: String::from(assets_dir),
-        drive_name: String::from(drive_name),
-        kernel_name: String::from(kernel_name),
+        tmp_dir: tmp_dir.to_owned(),
+        log_dir: log_dir.to_owned(),
+        assets_dir: assets_dir.to_owned(),
+        drive_name: drive_name.to_owned(),
+        kernel_name: kernel_name.to_owned(),
     };
 
     Ok(cli_options)
