@@ -16,7 +16,7 @@ mod state;
 mod vm;
 
 use crate::cli::generate_cli;
-use crate::state::State;
+use crate::state::{State, StatePtr};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
@@ -73,6 +73,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     graceful.await?;
 
+    terminate_all_vms(state_ptr).await;
+
+    Ok(())
+}
+
+async fn terminate_all_vms(state_ptr: StatePtr) {
     let vms = state_ptr.vms.read().await;
 
     for v in vms.iter() {
@@ -83,7 +89,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         }
     }
 
-    // Holds the process open for last machines
+    // Waits for last machines
     for v in vms.iter() {
         loop {
             match get_process(v.pid).await {
@@ -98,8 +104,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             }
         }
     }
-
-    Ok(())
 }
 
 async fn get_process(pid: u32) -> Result<bool, std::io::Error> {
