@@ -10,8 +10,8 @@ env:
 
 
 jobs:
-  check:
-    name: Check
+  build:
+    name: Build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -19,13 +19,6 @@ jobs:
 
       - name: Cargo check
         run: cargo check --verbose
-  
-  Build:
-    name: Build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
       
       - name: Cargo Build
         run: cargo build --verbose
