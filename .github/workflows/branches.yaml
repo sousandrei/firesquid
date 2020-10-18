@@ -17,6 +17,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
+      - run: mkdir assets
       - run: cd assets
       - run: wget -N https://storage.googleapis.com/firesquid/vmlinux
       - run: wget -N https://storage.googleapis.com/firesquid/rootfs.ext4
