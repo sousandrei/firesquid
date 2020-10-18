@@ -1,0 +1,33 @@
+name: Branches
+
+on:
+  push:
+    branches-ignore: 
+     - 'main'
+
+env:
+  CARGO_TERM_COLOR: always
+
+
+jobs:
+  check:
+    name: Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Cargo check
+        with:
+          command: cargo check --verbose
+  
+  Build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      
+      - name: Cargo Build
+        with:
+          command: cargo build --verbose
