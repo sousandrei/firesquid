@@ -17,6 +17,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
+      - run: cd assets
+      - run: wget -N https://storage.googleapis.com/firesquid/vmlinux
+      - run: wget -N https://storage.googleapis.com/firesquid/rootfs.ext4
+      - run: wget -N https://github.com/firecracker-microvm/firecracker/releases/download/v0.22.0/firecracker-v0.22.0-x86_64
+      - run: mv firecracker-v0.22.0-x86_64 firecracker
+      - run: cd ..
+
       - name: Cargo check
         run: cargo check --verbose
       
