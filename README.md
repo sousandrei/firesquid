@@ -1,9 +1,7 @@
 <p align="center">
   <a href="#">
-      <img src="https://storage.googleapis.com/firesquid/firesquid.svg" alt="Logo" width="125" height="125">
+      <img src="https://storage.googleapis.com/firesquid/firesquid.svg" alt="Logo" width="600" height="180">
   </a>
-
-  <h3 align="center">FireSquid</h3>
 
   <p align="center">
     Simple AWS Firecracker orchestrator
@@ -15,7 +13,7 @@
 
 <br />
 
-[![Build Status](https://travis-ci.com/sousandrei/firesquid.svg?branch=master)](https://travis-ci.com/sousandrei/firesquid)
+[![Build Status](https://github.com/sousandrei/firesquid/workflows/Branches/badge.svg)](https://github.com/sousandrei/firesquid/actions)
 
 ## Table of Contents
 
