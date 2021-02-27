@@ -1,12 +1,11 @@
 use chrono::prelude::*;
 use core::marker::{Send, Sync, Unpin};
 use std::process::Stdio;
-use tokio::fs::File;
 use tokio::io::AsyncRead;
 use tokio::io::{AsyncBufReadExt, BufReader};
-use tokio::prelude::*;
 use tokio::process::Command;
-use tokio::time::{delay_for, Duration};
+use tokio::time::{sleep, Duration};
+use tokio::{fs::File, io::AsyncWriteExt};
 use tracing::info;
 
 use crate::error::RuntimeError;
@@ -37,7 +36,7 @@ pub async fn spawn_process(
     handle_io(stderr, vm_name, "stderr", &state.log_dir, time);
 
     //TODO: wait for file to appear?
-    delay_for(Duration::from_millis(10)).await;
+    sleep(Duration::from_millis(10)).await;
 
     set_kernel(vm_name, &state.assets_dir, &state.kernel_name).await?;
     set_drive(vm_name, &state.tmp_dir).await?;

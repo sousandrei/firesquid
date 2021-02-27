@@ -17,32 +17,32 @@ pub fn generate_cli() -> Result<CliOptions, Box<dyn std::error::Error + Send + S
 
     let tmp_dir = matches
         .value_of("tmp_dir")
-        .ok_or(error::RuntimeError::new("Invalid parameter [tmp_dir]"))?;
+        .ok_or_else(|| error::RuntimeError::new("Invalid parameter [tmp_dir]"))?;
 
     let log_dir = matches
         .value_of("log_dir")
-        .ok_or(error::RuntimeError::new("Invalid parameter [log_dir]"))?;
+        .ok_or_else(|| error::RuntimeError::new("Invalid parameter [log_dir]"))?;
 
     let assets_dir = matches
         .value_of("assets_dir")
-        .ok_or(error::RuntimeError::new("Invalid parameter [assets_dir]"))?;
+        .ok_or_else(|| error::RuntimeError::new("Invalid parameter [assets_dir]"))?;
 
     let drive_name = matches
         .value_of("drive_name")
-        .ok_or(error::RuntimeError::new("Invalid parameter [drive_name]"))?;
+        .ok_or_else(|| error::RuntimeError::new("Invalid parameter [drive_name]"))?;
 
     let kernel_name = matches
         .value_of("kernel_name")
-        .ok_or(error::RuntimeError::new("Invalid parameter [kernel_name]"))?;
+        .ok_or_else(|| error::RuntimeError::new("Invalid parameter [kernel_name]"))?;
 
     let port = matches
         .value_of("port")
-        .ok_or(error::RuntimeError::new("Invalid parameter [port]"))?;
+        .ok_or_else(|| error::RuntimeError::new("Invalid parameter [port]"))?;
 
     let port: u16 = port.parse()?;
 
     let cli_options = CliOptions {
-        port: port,
+        port,
         tmp_dir: tmp_dir.to_owned(),
         log_dir: log_dir.to_owned(),
         assets_dir: assets_dir.to_owned(),

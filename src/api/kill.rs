@@ -22,10 +22,9 @@ pub async fn handler(
         }
     };
 
-    let pid: u32 = match state::get_vm_pid(state_ptr.clone(), &body.vm_name).await {
-        Some(p) => p,
-        None => 0,
-    };
+    let pid = state::get_vm_pid(state_ptr.clone(), &body.vm_name)
+        .await
+        .unwrap_or(0);
 
     if pid == 0 {
         let response = build_response(
@@ -35,7 +34,7 @@ pub async fn handler(
         return Ok(response);
     }
 
-    let child = match tokio::process::Command::new("kill")
+    let mut child = match tokio::process::Command::new("kill")
         .arg(pid.to_string())
         .spawn()
     {
@@ -46,7 +45,7 @@ pub async fn handler(
         }
     };
 
-    if let Err(e) = child.await {
+    if let Err(e) = child.wait().await {
         let response = build_response(StatusCode::OK, format!("Error killing vm: {}", e));
         return Ok(response);
     };

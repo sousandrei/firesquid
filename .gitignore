@@ -3,9 +3,12 @@ target
 Cargo.lock
 assets
 
-firecracker
+# firecracker
 tmp
 logs
 todo
 
 .vscode
+
+test
+deb

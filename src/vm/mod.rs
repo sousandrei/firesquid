@@ -13,26 +13,28 @@ use crate::state::StatePtr;
 pub async fn spawn(name: &str, state_ptr: StatePtr) -> Result<(), RuntimeError> {
     let name = name.to_owned();
 
-    if let Some(_) = state::get_vm_pid(state_ptr.clone(), &name).await {
+    if state::get_vm_pid(state_ptr.clone(), &name).await.is_some() {
         return Err(RuntimeError::new(&format!(
             "Vm name already used [{}]",
             &name
         )));
     }
 
-    if let Err(_) = drive::create_drive(
+    if drive::create_drive(
         &name,
         &state_ptr.tmp_dir,
         &state_ptr.assets_dir,
         &state_ptr.drive_name,
-    ) {
+    )
+    .is_err()
+    {
         drive::delete_drive(&name, &state_ptr.tmp_dir)?;
         socket::delete_socket(&name, &state_ptr.tmp_dir)?;
         return Err(RuntimeError::new("Error creating drive"));
     };
 
     task::spawn(async move {
-        let child = match child::spawn_process(&name, state_ptr.clone()).await {
+        let mut child = match child::spawn_process(&name, state_ptr.clone()).await {
             Ok(i) => i,
             Err(e) => {
                 return {
@@ -48,9 +50,12 @@ pub async fn spawn(name: &str, state_ptr: StatePtr) -> Result<(), RuntimeError> 
             }
         };
 
-        state::add_vm(state_ptr.clone(), &name, child.id()).await;
+        match child.id() {
+            Some(id) => state::add_vm(state_ptr.clone(), &name, id).await,
+            None => error!("Failed to start machine, proceeding to teardown [{}]", name),
+        };
 
-        if let Err(_) = child.await {
+        if child.wait().await.is_err() {
             error!("Failed to start machine, proceeding to teardown [{}]", name);
         };
 

@@ -1,7 +1,7 @@
 use hyper::service::{make_service_fn, service_fn};
 use hyper::Server;
-use std::env;
 use std::sync::Arc;
+use std::{env, net::SocketAddr};
 use tokio::signal::unix::{signal, SignalKind};
 use tokio::sync::mpsc;
 use tokio::sync::RwLock;
@@ -20,7 +20,7 @@ use crate::state::{State, StatePtr};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    if let Err(_) = env::var("RUST_LOG") {
+    if env::var("RUST_LOG").is_err() {
         env::set_var("RUST_LOG", "info");
     }
 
@@ -43,7 +43,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     folders::init(&state.tmp_dir)?;
     folders::init(&state.log_dir)?;
 
-    let addr = ([127, 0, 0, 1], cli_options.port).into();
+    let addr = SocketAddr::from(([127, 0, 0, 1], cli_options.port));
 
     let state_ptr = Arc::new(state);
 
@@ -57,7 +57,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         }
     });
 
-    let server = Server::try_bind(&addr)?.serve(service);
+    let server = Server::bind(&addr).serve(service);
 
     info!("Listening on http://{}", addr);
 
@@ -115,22 +115,20 @@ async fn get_process(pid: u32) -> Result<bool, std::io::Error> {
         Err(e) => Err(e),
         Ok(output) => {
             let output = String::from_utf8_lossy(&output.stdout);
-            let output: Vec<&str> = output.split("\n").collect();
+            let output: Vec<&str> = output.split('\n').collect();
 
             Ok(output.contains(&pid.to_string().as_str()))
         }
     }
 }
 
-fn listen_for_signal(mut tx: tokio::sync::mpsc::Sender<SignalKind>, kind: SignalKind) {
+fn listen_for_signal(tx: tokio::sync::mpsc::Sender<SignalKind>, kind: SignalKind) {
     tokio::task::spawn(async move {
-        let mut stream = signal(kind).expect(&format!("Error opening signal stream [{:?}]", kind));
+        let mut stream =
+            signal(kind).unwrap_or_else(|_| panic!("Error opening signal stream [{:?}]", kind));
 
-        loop {
-            stream.recv().await;
-            info!("Termination signal received");
-            break;
-        }
+        stream.recv().await;
+        info!("Termination signal received");
 
         tx.send(kind).await.unwrap();
     });
