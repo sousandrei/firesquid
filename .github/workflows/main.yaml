@@ -2,7 +2,7 @@ name: Branches
 
 on:
   push:
-    branches-ignore:
+    branches:
       - main
 
 env:
@@ -29,15 +29,6 @@ jobs:
           toolchain: ${{ matrix.rust }}
           override: true
           components: rustfmt, clippy
-
-      # Test assets
-      # - run: mkdir assets
-      # - run: cd assets
-      # - run: wget -N https://storage.googleapis.com/firesquid/vmlinux
-      # - run: wget -N https://storage.googleapis.com/firesquid/rootfs.ext4
-      # - run: wget -N https://github.com/firecracker-microvm/firecracker/releases/download/v0.22.0/firecracker-v0.22.0-x86_64
-      # - run: mv firecracker-v0.22.0-x86_64 firecracker
-      # - run: cd ..
 
       - uses: actions-rs/cargo@v1
         name: Build
