@@ -1,7 +1,7 @@
 debug
 target
 Cargo.lock
-./assets/
+assets
 
 # firecracker
 tmp
