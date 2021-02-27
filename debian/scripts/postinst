@@ -1,0 +1,17 @@
+#!/bin/sh
+
+## This will only remove masks created by d-s-h on package removal.
+deb-systemd-helper unmask firesquid.service > /dev/null || true
+
+# was-enabled defaults to true, so new installations run enable.
+if deb-systemd-helper --quiet was-enabled firesquid.service
+then
+	# Enables the unit on first installation, creates new
+	# symlinks on upgrades if the unit file has changed.
+	deb-systemd-helper enable firesquid.service > /dev/null || true
+	deb-systemd-invoke start firesquid
+else
+	# Update the statefile to add new symlinks (if any), which need to be
+	# cleaned up on purge. Also remove old symlinks.
+	deb-systemd-helper update-state firesquid.service > /dev/null || true
+fi

@@ -18,6 +18,9 @@ mod vm;
 use crate::cli::generate_cli;
 use crate::state::{State, StatePtr};
 
+use std::fs;
+use std::path;
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     if env::var("RUST_LOG").is_err() {
@@ -25,6 +28,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     }
 
     tracing_subscriber::fmt::init();
+
+    //TODO: better way of finding out if it's being run by system
+    if !path::Path::new("/tmp/firesquid/lock.pid").exists() {
+        start_daemon().await?;
+        return Ok(());
+    }
+
+    println!("CLI GOES HERE");
+
+    Ok(())
+}
+
+async fn start_daemon() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    info!("Creating lock file");
+    fs::create_dir("/tmp/firesquid").ok();
+    fs::File::create("/tmp/firesquid/lock.pid").ok();
 
     let cli_options = match generate_cli() {
         Ok(options) => options,
@@ -74,6 +93,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     graceful.await?;
 
     terminate_all_vms(state_ptr).await;
+
+    info!("Removing lock file");
+    fs::remove_file("/tmp/firesquid/lock.pid").ok();
 
     Ok(())
 }

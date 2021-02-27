@@ -1,0 +1,13 @@
+[Unit]
+AssertPathExists=/usr/bin/firesquid
+
+[Service]
+WorkingDirectory=~
+ExecStart=/usr/bin/firesquid
+Restart=always
+PrivateTmp=true
+NoNewPrivileges=true
+
+[Install]
+Alias=firesquid
+WantedBy=default.target

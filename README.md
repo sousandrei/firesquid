@@ -13,7 +13,7 @@
 
 <br />
 
-[![Build Status](https://github.com/sousandrei/firesquid/workflows/Branches/badge.svg)](https://github.com/sousandrei/firesquid/actions)
+[![Build Status](https://github.com/sousandrei/firesquid/workflows/Main/badge.svg)](https://github.com/sousandrei/firesquid/actions)
 
 ## Table of Contents
 
@@ -35,6 +35,12 @@ It abstracts the hard part making it a breeze to spawn your very own fleet of mi
 - Multiple vms from the same kernel
 - Lightweight
 - Customizable
+
+Upcoming:
+
+- Networking
+- Proper package release and distribution
+- Choices between which kernel to use for which machine
 
 ## <a name="help-wanted"></a> Assets 📦
 
