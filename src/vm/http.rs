@@ -1,5 +1,5 @@
 use hyper::{Body, Client, Method, Request};
-use hyperlocal::{UnixClientExt, Uri};
+use hyperlocal::*;
 use std::path::Path;
 use tracing::info;
 
