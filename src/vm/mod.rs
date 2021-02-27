@@ -13,19 +13,21 @@ use crate::state::StatePtr;
 pub async fn spawn(name: &str, state_ptr: StatePtr) -> Result<(), RuntimeError> {
     let name = name.to_owned();
 
-    if let Some(_) = state::get_vm_pid(state_ptr.clone(), &name).await {
+    if state::get_vm_pid(state_ptr.clone(), &name).await.is_some() {
         return Err(RuntimeError::new(&format!(
             "Vm name already used [{}]",
             &name
         )));
     }
 
-    if let Err(_) = drive::create_drive(
+    if drive::create_drive(
         &name,
         &state_ptr.tmp_dir,
         &state_ptr.assets_dir,
         &state_ptr.drive_name,
-    ) {
+    )
+    .is_err()
+    {
         drive::delete_drive(&name, &state_ptr.tmp_dir)?;
         socket::delete_socket(&name, &state_ptr.tmp_dir)?;
         return Err(RuntimeError::new("Error creating drive"));
@@ -53,7 +55,7 @@ pub async fn spawn(name: &str, state_ptr: StatePtr) -> Result<(), RuntimeError> 
             None => error!("Failed to start machine, proceeding to teardown [{}]", name),
         };
 
-        if let Err(_) = child.wait().await {
+        if child.wait().await.is_err() {
             error!("Failed to start machine, proceeding to teardown [{}]", name);
         };
 

@@ -35,7 +35,7 @@ pub async fn add_vm(state_ptr: StatePtr, name: &str, pid: u32) {
 
     vms.push(Vm {
         name: String::from(name),
-        pid: pid,
+        pid,
     });
 }
 
