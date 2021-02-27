@@ -1,6 +1,8 @@
-use std::fs;
 use std::io::{Error, ErrorKind};
-use std::path::PathBuf;
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 use tracing::{error, info, warn};
 
 pub fn create_folder(path: PathBuf) -> Result<(), std::io::Error> {
@@ -58,7 +60,7 @@ pub fn delete_file(path: PathBuf) -> Result<(), std::io::Error> {
     Ok(())
 }
 
-fn validate_path(path: &PathBuf) -> Result<(), std::io::Error> {
+fn validate_path(path: &Path) -> Result<(), std::io::Error> {
     match fs::canonicalize(&path) {
         Ok(p) => &p,
         Err(e) => match e.kind() {
@@ -75,7 +77,7 @@ fn validate_path(path: &PathBuf) -> Result<(), std::io::Error> {
     Ok(())
 }
 
-fn check_exists(path: &PathBuf) -> Result<(), std::io::Error> {
+fn check_exists(path: &Path) -> Result<(), std::io::Error> {
     if path.exists() {
         return Err(Error::new(
             ErrorKind::InvalidInput,
