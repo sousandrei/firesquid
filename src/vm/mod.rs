@@ -32,7 +32,7 @@ pub async fn spawn(name: &str, state_ptr: StatePtr) -> Result<(), RuntimeError> 
     };
 
     task::spawn(async move {
-        let child = match child::spawn_process(&name, state_ptr.clone()).await {
+        let mut child = match child::spawn_process(&name, state_ptr.clone()).await {
             Ok(i) => i,
             Err(e) => {
                 return {
@@ -48,9 +48,12 @@ pub async fn spawn(name: &str, state_ptr: StatePtr) -> Result<(), RuntimeError> 
             }
         };
 
-        state::add_vm(state_ptr.clone(), &name, child.id()).await;
+        match child.id() {
+            Some(id) => state::add_vm(state_ptr.clone(), &name, id).await,
+            None => error!("Failed to start machine, proceeding to teardown [{}]", name),
+        };
 
-        if let Err(_) = child.await {
+        if let Err(_) = child.wait().await {
             error!("Failed to start machine, proceeding to teardown [{}]", name);
         };
 
