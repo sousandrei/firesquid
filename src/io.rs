@@ -6,7 +6,7 @@ use tracing::{error, info, warn};
 pub fn create_folder(path: PathBuf) -> Result<(), std::io::Error> {
     validate_path(&path)?;
 
-    if let Ok(_) = check_exists(&path) {
+    if check_exists(&path).is_ok() {
         info!("Path create successfully [{}]", path.display());
         fs::create_dir(path)?;
         return Ok(());

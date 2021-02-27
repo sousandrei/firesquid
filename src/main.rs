@@ -20,7 +20,7 @@ use crate::state::{State, StatePtr};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    if let Err(_) = env::var("RUST_LOG") {
+    if env::var("RUST_LOG").is_err() {
         env::set_var("RUST_LOG", "info");
     }
 
@@ -115,7 +115,7 @@ async fn get_process(pid: u32) -> Result<bool, std::io::Error> {
         Err(e) => Err(e),
         Ok(output) => {
             let output = String::from_utf8_lossy(&output.stdout);
-            let output: Vec<&str> = output.split("\n").collect();
+            let output: Vec<&str> = output.split('\n').collect();
 
             Ok(output.contains(&pid.to_string().as_str()))
         }
@@ -124,13 +124,11 @@ async fn get_process(pid: u32) -> Result<bool, std::io::Error> {
 
 fn listen_for_signal(tx: tokio::sync::mpsc::Sender<SignalKind>, kind: SignalKind) {
     tokio::task::spawn(async move {
-        let mut stream = signal(kind).expect(&format!("Error opening signal stream [{:?}]", kind));
+        let mut stream =
+            signal(kind).unwrap_or_else(|_| panic!("Error opening signal stream [{:?}]", kind));
 
-        loop {
-            stream.recv().await;
-            info!("Termination signal received");
-            break;
-        }
+        stream.recv().await;
+        info!("Termination signal received");
 
         tx.send(kind).await.unwrap();
     });
