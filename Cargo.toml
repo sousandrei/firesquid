@@ -2,13 +2,30 @@
 authors = ["Andrei Sousa <sousandrei@gmail.com>"]
 edition = "2018"
 name = "firesquid"
+readme = "README.md"
 version = "0.1.0"
+
+
+[package.metadata.deb]
+assets = [
+    ["target/release/firesquid", "usr/bin/firesquid", "755"],
+    [
+        "debian/firesquid.service",
+        "/lib/systemd/system/firesquid.service",
+        "644",
+    ],
+]
+depends = "$auto, systemd"
+extended-description = "firesquid daemon"
+maintainer-scripts = "debian/scripts"
+priority = "optional"
+section = "admin"
 
 [dependencies]
 chrono = "0.4.19"
 clap = { version = "2.33.3", features = ["yaml"] }
 hyper = { version = "0.14.4", features = ["client", "server", "stream", "http1", "tcp"] }
-hyperlocal = { version = "0.8" }
+hyperlocal = "0.8"
 serde = { version = "1.0.123", features = ["derive"] }
 serde_json = "1.0.63"
 tokio = { version = "1.2.0", features = [
