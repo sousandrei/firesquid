@@ -18,7 +18,7 @@ pub async fn spawn(name: &str, state_ptr: StatePtr) -> Result<(), RuntimeError> 
         )));
     }
 
-    if let Err(error) = drive::create_drive(&name) {
+    if drive::create_drive(&name).is_err() {
         drive::delete_drive(&name)?;
         socket::delete_socket(&name)?;
 
