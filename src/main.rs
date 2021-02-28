@@ -7,18 +7,19 @@ use tokio::sync::mpsc;
 use tokio::sync::RwLock;
 use tracing::{error, info};
 
+// mod cli;
+
 mod api;
-mod cli;
+mod consts;
 mod error;
 mod folders;
 mod io;
 mod state;
 mod vm;
 
-use crate::cli::generate_cli;
-use crate::state::{State, StatePtr};
+use crate::state::StatePtr;
 
-use std::fs;
+use crate::consts::{LOG_DIR, TMP_DIR};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
@@ -28,10 +29,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     tracing_subscriber::fmt::init();
 
-    if env::var_os("DAEMON").is_none() {
-        println!("cli goes here");
-        return Ok(());
-    }
+    // if env::var_os("DAEMON").is_none() {
+    //     println!("cli goes here");
+    //     return Ok(());
+    // }
 
     start_daemon().await?;
 
@@ -39,26 +40,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 }
 
 async fn start_daemon() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    fs::create_dir("/tmp/firesquid").ok();
+    let state = Arc::new(RwLock::new(Vec::new()));
 
-    let cli_options = match generate_cli() {
-        Ok(options) => options,
-        Err(e) => return Err(e),
-    };
+    folders::init(TMP_DIR)?;
+    folders::init(LOG_DIR)?;
 
-    let state = State {
-        vms: Arc::new(RwLock::new(Vec::new())),
-        tmp_dir: cli_options.tmp_dir,
-        log_dir: cli_options.log_dir,
-        assets_dir: cli_options.assets_dir,
-        drive_name: cli_options.drive_name,
-        kernel_name: cli_options.kernel_name,
-    };
-
-    folders::init(&state.tmp_dir)?;
-    folders::init(&state.log_dir)?;
-
-    let addr = SocketAddr::from(([127, 0, 0, 1], cli_options.port));
+    // TODO: check if HTTP is the way, then change port if needed
+    let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
 
     let state_ptr = Arc::new(state);
 
@@ -94,7 +82,7 @@ async fn start_daemon() -> Result<(), Box<dyn std::error::Error + Send + Sync>> 
 }
 
 async fn terminate_all_vms(state_ptr: StatePtr) {
-    let vms = state_ptr.vms.read().await;
+    let vms = state_ptr.read().await;
 
     for v in vms.iter() {
         info!("Terminating [{}]", v.name);
