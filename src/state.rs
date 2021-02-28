@@ -8,19 +8,12 @@ pub struct Vm {
     pub pid: u32,
 }
 
-pub struct State {
-    pub vms: Arc<RwLock<Vec<Vm>>>,
-    pub tmp_dir: String,
-    pub log_dir: String,
-    pub assets_dir: String,
-    pub drive_name: String,
-    pub kernel_name: String,
-}
+pub type State = Arc<RwLock<Vec<Vm>>>;
 
 pub type StatePtr = Arc<State>;
 
 pub async fn get_vms(state_ptr: StatePtr) -> Vec<Vm> {
-    let vms = state_ptr.vms.read().await;
+    let vms = state_ptr.read().await;
 
     let mut new_vms: Vec<Vm> = Vec::new();
     for (_, item) in vms.iter().enumerate() {
@@ -31,7 +24,7 @@ pub async fn get_vms(state_ptr: StatePtr) -> Vec<Vm> {
 }
 
 pub async fn add_vm(state_ptr: StatePtr, name: &str, pid: u32) {
-    let mut vms = state_ptr.vms.write().await;
+    let mut vms = state_ptr.write().await;
 
     vms.push(Vm {
         name: String::from(name),
@@ -40,7 +33,7 @@ pub async fn add_vm(state_ptr: StatePtr, name: &str, pid: u32) {
 }
 
 pub async fn remove_vm(state_ptr: StatePtr, name: &str) {
-    let mut vms = state_ptr.vms.write().await;
+    let mut vms = state_ptr.write().await;
 
     if let Some(index) = vms.iter().position(|vm| vm.name == name) {
         vms.remove(index);
@@ -48,7 +41,7 @@ pub async fn remove_vm(state_ptr: StatePtr, name: &str) {
 }
 
 pub async fn get_vm_pid(state_ptr: StatePtr, name: &str) -> Option<u32> {
-    let vms = state_ptr.vms.read().await;
+    let vms = state_ptr.read().await;
 
     if let Some(index) = vms.iter().position(|vm| vm.name == name) {
         return Option::Some(vms[index].pid);

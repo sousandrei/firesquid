@@ -6,9 +6,7 @@ mod socket;
 use tokio::task;
 use tracing::{error, info};
 
-use crate::error::RuntimeError;
-use crate::state;
-use crate::state::StatePtr;
+use crate::{error::RuntimeError, state, state::StatePtr};
 
 pub async fn spawn(name: &str, state_ptr: StatePtr) -> Result<(), RuntimeError> {
     let name = name.to_owned();
@@ -20,21 +18,15 @@ pub async fn spawn(name: &str, state_ptr: StatePtr) -> Result<(), RuntimeError> 
         )));
     }
 
-    if drive::create_drive(
-        &name,
-        &state_ptr.tmp_dir,
-        &state_ptr.assets_dir,
-        &state_ptr.drive_name,
-    )
-    .is_err()
-    {
-        drive::delete_drive(&name, &state_ptr.tmp_dir)?;
-        socket::delete_socket(&name, &state_ptr.tmp_dir)?;
+    if let Err(error) = drive::create_drive(&name) {
+        drive::delete_drive(&name)?;
+        socket::delete_socket(&name)?;
+
         return Err(RuntimeError::new("Error creating drive"));
     };
 
     task::spawn(async move {
-        let mut child = match child::spawn_process(&name, state_ptr.clone()).await {
+        let mut child = match child::spawn_process(&name).await {
             Ok(i) => i,
             Err(e) => {
                 return {
@@ -44,8 +36,8 @@ pub async fn spawn(name: &str, state_ptr: StatePtr) -> Result<(), RuntimeError> 
                         e.to_string()
                     );
 
-                    drive::delete_drive(&name, &state_ptr.tmp_dir).unwrap();
-                    socket::delete_socket(&name, &state_ptr.tmp_dir).unwrap();
+                    drive::delete_drive(&name).unwrap();
+                    socket::delete_socket(&name).unwrap();
                 }
             }
         };
@@ -59,8 +51,8 @@ pub async fn spawn(name: &str, state_ptr: StatePtr) -> Result<(), RuntimeError> 
             error!("Failed to start machine, proceeding to teardown [{}]", name);
         };
 
-        drive::delete_drive(&name, &state_ptr.tmp_dir).unwrap();
-        socket::delete_socket(&name, &state_ptr.tmp_dir).unwrap();
+        drive::delete_drive(&name).unwrap();
+        socket::delete_socket(&name).unwrap();
 
         state::remove_vm(state_ptr.clone(), &name).await;
 
