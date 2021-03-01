@@ -2,8 +2,8 @@ use crate::state::StatePtr;
 use hyper::service::{make_service_fn, service_fn};
 use hyper::Server;
 use hyperlocal::UnixServerExt;
-use std::sync::Arc;
 use std::{fs, path::Path};
+use std::{os::unix::prelude::PermissionsExt, sync::Arc};
 use tokio::signal::unix::{signal, SignalKind};
 use tokio::sync::mpsc;
 use tokio::sync::RwLock;
@@ -39,6 +39,11 @@ pub async fn start() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     });
 
     let server = Server::bind_unix(path)?.serve(service);
+
+    // Allowing socket to be wrote on by non-root
+    let mut perms = fs::metadata(path)?.permissions();
+    perms.set_mode(0o666);
+    fs::set_permissions(path, perms).unwrap();
 
     info!("Listening on {}", SOCKET);
 

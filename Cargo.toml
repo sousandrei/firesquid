@@ -13,9 +13,9 @@ assets = [
         "/lib/systemd/system/firesquid.service",
         "644",
     ],
-    ["assets/firecracker", "/etc/firesquid/firecracker", "644"],
-    ["assets/rootfs.ext4", "/etc/firesquid/rootfs.ext4", "644"],
-    ["assets/vmlinux", "/etc/firesquid/vmlinux", "644"],
+    ["assets/firecracker", "usr/bin/firecracker", "755"],
+    ["assets/rootfs.ext4", "opt/firesquid/rootfs.ext4", "644"],
+    ["assets/vmlinux", "opt/firesquid/vmlinux", "644"],
 ]
 depends = "$auto, systemd"
 extended-description = "firesquid daemon"
