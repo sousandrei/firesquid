@@ -13,7 +13,7 @@ use crate::error::RuntimeError;
 use crate::vm::http;
 
 pub async fn spawn_process(vm_name: &str) -> Result<tokio::process::Child, RuntimeError> {
-    let mut child = Command::new(format!("{}/firecracker", ASSETS_DIR))
+    let mut child = Command::new("firecracker")
         .args(&["--api-sock", &format!("{}/{}.socket", TMP_DIR, vm_name)])
         .stdin(Stdio::null())
         .stdout(Stdio::piped())

@@ -1,8 +1,7 @@
 use std::env;
 
-// mod cli;
-
 mod api;
+mod cli;
 mod consts;
 mod daemon;
 mod error;
@@ -19,10 +18,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     tracing_subscriber::fmt::init();
 
-    // if env::var_os("DAEMON").is_none() {
-    //     println!("cli goes here");
-    //     return Ok(());
-    // }
+    if env::var_os("DAEMON").is_none() {
+        return cli::new().await;
+    }
 
     daemon::start().await?;
 
