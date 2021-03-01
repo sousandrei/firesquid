@@ -6,16 +6,11 @@ mod delete;
 mod kill;
 mod list;
 
-use crate::state::{StatePtr, Vm};
+use crate::state::StatePtr;
 
 #[derive(Serialize, Deserialize, Debug)]
-struct VmInput {
-    vm_name: String,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct VmListOuput {
-    vms: Vec<Vm>,
+pub struct VmInput {
+    pub vm_name: String,
 }
 
 pub async fn router(

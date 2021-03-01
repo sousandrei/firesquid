@@ -3,10 +3,11 @@ use hyperlocal::*;
 use std::path::Path;
 use tracing::info;
 
+use crate::consts::TMP_DIR;
 use crate::error::RuntimeError;
 
 pub async fn send_request(vm_name: &str, url: &str, body: &str) -> Result<(), RuntimeError> {
-    let vm_path = format!("./tmp/{}.socket", vm_name);
+    let vm_path = format!("{}/{}.socket", TMP_DIR, vm_name);
     let path = Path::new(&vm_path);
     let url: Uri = Uri::new(path, url);
 
