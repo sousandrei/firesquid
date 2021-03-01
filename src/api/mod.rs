@@ -9,12 +9,12 @@ mod list;
 use crate::state::{StatePtr, Vm};
 
 #[derive(Serialize, Deserialize, Debug)]
-struct VmInput {
-    vm_name: String,
+pub struct VmInput {
+    pub vm_name: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-struct VmListOuput {
+pub struct VmListOuput {
     vms: Vec<Vm>,
 }
 

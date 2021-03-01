@@ -10,7 +10,7 @@ pub fn create_folder(path: PathBuf) -> Result<(), std::io::Error> {
 
     if check_exists(&path).is_ok() {
         info!("Path create successfully [{}]", path.display());
-        fs::create_dir(path)?;
+        fs::create_dir_all(path)?;
         return Ok(());
     }
 
