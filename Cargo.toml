@@ -26,8 +26,8 @@ section = "admin"
 [dependencies]
 chrono = "0.4.19"
 clap = { version = "2.33.3", features = ["yaml"] }
-hyper = { version = "0.14.4", features = ["client", "server", "stream", "http1", "tcp"] }
-hyperlocal = "0.8"
+hyper = { version = "0.14", features = ["client"] }
+hyperlocal = "0.8.0"
 serde = { version = "1.0.123", features = ["derive"] }
 serde_json = "1.0.63"
 tokio = { version = "1.2.0", features = [
@@ -41,5 +41,7 @@ tokio = { version = "1.2.0", features = [
     "time",
     "net",
 ] }
+tokio-stream = { version = "0.1.5", features = ['net'] }
 tracing = "0.1.25"
 tracing-subscriber = "0.2.16"
+warp = "0.3.0"

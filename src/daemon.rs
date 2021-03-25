@@ -1,17 +1,16 @@
-use crate::state::StatePtr;
-use hyper::service::{make_service_fn, service_fn};
-use hyper::Server;
-use hyperlocal::UnixServerExt;
 use std::{fs, path::Path};
 use std::{os::unix::prelude::PermissionsExt, sync::Arc};
+use tokio::net::UnixListener;
 use tokio::signal::unix::{signal, SignalKind};
 use tokio::sync::mpsc;
 use tokio::sync::RwLock;
+use tokio_stream::wrappers::UnixListenerStream;
 use tracing::{error, info};
 
 use crate::api;
 use crate::consts::{LOG_DIR, SOCKET, TMP_DIR};
 use crate::folders;
+use crate::state::StatePtr;
 use crate::vm;
 
 pub async fn start() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
@@ -26,19 +25,10 @@ pub async fn start() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         fs::remove_file(path)?;
     }
 
-    let state_ptr = Arc::new(state);
+    let state_ptr: StatePtr = Arc::new(state);
 
-    let service = make_service_fn(|_| {
-        let state = state_ptr.clone();
-        async {
-            Ok::<_, hyper::Error>(service_fn(move |req| {
-                let state = state.clone();
-                async move { api::router(req, state).await }
-            }))
-        }
-    });
-
-    let server = Server::bind_unix(path)?.serve(service);
+    let listener = UnixListener::bind(path).unwrap();
+    let socket = UnixListenerStream::new(listener);
 
     // Allowing socket to be wrote on by non-root
     let mut perms = fs::metadata(path)?.permissions();
@@ -49,15 +39,18 @@ pub async fn start() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     let (tx, mut rx) = mpsc::channel(1);
 
-    let graceful = server.with_graceful_shutdown(async {
-        rx.recv().await;
-        info!("Shutting down hyper server");
-    });
+    let server = warp::serve(api::router(state_ptr.clone())).serve_incoming_with_graceful_shutdown(
+        socket,
+        async move {
+            rx.recv().await;
+            info!("Shutting down warp server");
+        },
+    );
 
     listen_for_signal(tx.clone(), SignalKind::interrupt());
     listen_for_signal(tx.clone(), SignalKind::terminate());
 
-    graceful.await?;
+    server.await;
 
     terminate_all_vms(state_ptr).await;
 
