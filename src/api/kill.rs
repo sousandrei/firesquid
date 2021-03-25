@@ -1,37 +1,21 @@
-use hyper::{Body, Request, Response, StatusCode};
 use tracing::error;
+use warp::http::StatusCode;
 
-use super::{build_response, VmInput};
+use super::VmInput;
 use crate::state;
 use crate::state::StatePtr;
 
 //TODO: process kill into vm package
 pub async fn handler(
-    request: Request<Body>,
+    body: VmInput,
     state_ptr: StatePtr,
-) -> Result<Response<Body>, hyper::Error> {
-    let body_bytes = &hyper::body::to_bytes(request.into_body()).await?;
-
-    let body: VmInput = match serde_json::from_slice(body_bytes) {
-        Ok(j) => j,
-        Err(e) => {
-            error!("{}", e);
-
-            let response = build_response(StatusCode::OK, e.to_string());
-            return Ok(response);
-        }
-    };
-
+) -> Result<Box<dyn warp::Reply>, warp::Rejection> {
     let pid = state::get_vm_pid(state_ptr.clone(), &body.vm_name)
         .await
         .unwrap_or(0);
 
     if pid == 0 {
-        let response = build_response(
-            StatusCode::OK,
-            format!("Machine not found: {}", body.vm_name),
-        );
-        return Ok(response);
+        return Ok(Box::new(StatusCode::NOT_FOUND));
     }
 
     let mut child = match tokio::process::Command::new("kill")
@@ -40,22 +24,23 @@ pub async fn handler(
     {
         Ok(c) => c,
         Err(e) => {
-            let response = build_response(StatusCode::OK, format!("Error killing vm: {}", e));
-            return Ok(response);
+            error!("{}", e);
+
+            return Ok(Box::new(warp::reply::with_status(
+                e.to_string(),
+                StatusCode::INTERNAL_SERVER_ERROR,
+            )));
         }
     };
 
     if let Err(e) = child.wait().await {
-        let response = build_response(StatusCode::OK, format!("Error killing vm: {}", e));
-        return Ok(response);
+        error!("{}", e);
+
+        return Ok(Box::new(warp::reply::with_status(
+            e.to_string(),
+            StatusCode::INTERNAL_SERVER_ERROR,
+        )));
     };
 
-    let response = build_response(
-        StatusCode::OK,
-        serde_json::json!({
-            "sucess": true,
-        })
-        .to_string(),
-    );
-    Ok(response)
+    Ok(Box::new(StatusCode::OK))
 }

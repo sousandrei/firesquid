@@ -78,8 +78,6 @@ async fn list() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     let vms: Vec<Vm> = serde_json::from_reader(body.reader())?;
 
-    println!("Vms");
-
     for vm in vms {
         println!("pid: {} | name: {}", vm.pid, vm.name);
     }

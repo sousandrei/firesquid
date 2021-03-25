@@ -1,5 +1,5 @@
 use hyper::{Body, Client, Method, Request};
-use hyperlocal::*;
+use hyperlocal::{UnixClientExt, Uri};
 use std::path::Path;
 use tracing::info;
 
@@ -13,27 +13,14 @@ pub async fn send_request(vm_name: &str, url: &str, body: &str) -> Result<(), Ru
 
     let client = Client::unix();
 
-    let req = match Request::builder()
+    let req = Request::builder()
         .method(Method::PUT)
         .uri(url)
         .header("Accept", "application/json")
         .header("Content-Type", "application/json")
-        .body(Body::from(body.to_owned()))
-    {
-        Ok(req) => req,
-        Err(e) => {
-            let msg = format!("Error building request [{}, {}]", vm_path, e.to_string());
-            return Err(RuntimeError::new(&msg));
-        }
-    };
+        .body(Body::from(body.to_owned()))?;
 
-    let res = match client.request(req).await {
-        Ok(res) => res,
-        Err(e) => {
-            let msg = format!("Error getting response [{}, {}]", vm_path, e.to_string());
-            return Err(RuntimeError::new(&msg));
-        }
-    };
+    let res = client.request(req).await?;
 
     info!("{}, {}", path.display(), res.status());
 

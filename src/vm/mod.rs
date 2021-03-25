@@ -18,11 +18,12 @@ pub async fn spawn(name: &str, state_ptr: StatePtr) -> Result<(), RuntimeError> 
         )));
     }
 
-    if drive::create_drive(&name).is_err() {
+    if let Err(e) = drive::create_drive(&name) {
         drive::delete_drive(&name)?;
         socket::delete_socket(&name)?;
 
-        return Err(RuntimeError::new("Error creating drive"));
+        let err_str = format!("Error creating drive: {}", e);
+        return Err(RuntimeError::new(&err_str));
     };
 
     task::spawn(async move {
