@@ -29,24 +29,24 @@ pub fn router(
         .and(warp::post())
         .and(warp::body::json())
         .and(with_state(state_ptr.clone()))
-        .and_then(|body: VmInput, state_ptr| create::handler(body, state_ptr));
+        .and_then(create::handler);
 
     let route_delete = warp::path::end()
         .and(warp::delete())
         .and(warp::body::json())
         .and(with_state(state_ptr.clone()))
-        .and_then(|body: VmInput, state_ptr| delete::handler(body, state_ptr));
+        .and_then(delete::handler);
 
     let route_kill = warp::path!("kill")
         .and(warp::post())
         .and(warp::body::json())
         .and(with_state(state_ptr.clone()))
-        .and_then(|body: VmInput, state_ptr| kill::handler(body, state_ptr));
+        .and_then(kill::handler);
 
     let route_list = warp::path::end()
         .and(warp::get())
-        .and(with_state(state_ptr.clone()))
-        .and_then(|state_ptr| list::handler(state_ptr));
+        .and(with_state(state_ptr))
+        .and_then(list::handler);
 
     // routes
     let routes = route_create
