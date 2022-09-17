@@ -46,8 +46,8 @@ pub async fn new() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         )
         .get_matches();
 
-    let (subcommand, arg_matches) = matches.subcommand();
-    let name = arg_matches.unwrap().value_of("machine_name").unwrap_or("");
+    let (subcommand, arg_matches) = matches.subcommand().expect("command not present");
+    let name = arg_matches.value_of("machine_name").unwrap_or("");
 
     match subcommand {
         "list" => list().await,
@@ -60,7 +60,7 @@ pub async fn new() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
 fn get_client_url(path: Option<&str>) -> (Client<UnixConnector>, hyper::Uri) {
     let path = match path {
-        Some(value) => format!("/{}", value.to_string()),
+        Some(value) => format!("/{}", value),
         None => "/".to_string(),
     };
 

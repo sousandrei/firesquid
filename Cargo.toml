@@ -1,21 +1,37 @@
 [package]
 authors = ["Andrei Sousa <sousandrei@gmail.com>"]
-edition = "2018"
+edition = "2021"
 name = "firesquid"
 readme = "README.md"
 version = "0.1.0"
 
 [package.metadata.deb]
 assets = [
-    ["target/release/firesquid", "usr/bin/firesquid", "755"],
+    [
+        "target/release/firesquid",
+        "usr/bin/firesquid",
+        "755",
+    ],
     [
         "debian/firesquid.service",
         "/lib/systemd/system/firesquid.service",
         "644",
     ],
-    ["assets/firecracker", "usr/bin/firecracker", "755"],
-    ["assets/rootfs.ext4", "opt/firesquid/rootfs.ext4", "644"],
-    ["assets/vmlinux", "opt/firesquid/vmlinux", "644"],
+    [
+        "assets/firecracker",
+        "usr/bin/firecracker",
+        "755",
+    ],
+    [
+        "assets/rootfs.ext4",
+        "opt/firesquid/rootfs.ext4",
+        "644",
+    ],
+    [
+        "assets/vmlinux",
+        "opt/firesquid/vmlinux",
+        "644",
+    ],
 ]
 depends = "$auto, systemd"
 extended-description = "firesquid daemon"
@@ -24,13 +40,13 @@ priority = "optional"
 section = "admin"
 
 [dependencies]
-chrono = "0.4.19"
-clap = { version = "2.33.3", features = ["yaml"] }
-hyper = { version = "0.14", features = ["client"] }
+chrono = "0.4.22"
+clap = { version = "3.2.22", features = ["yaml"] }
+hyper = { version = "0.14.20", features = ["client"] }
 hyperlocal = "0.8.0"
-serde = { version = "1.0.123", features = ["derive"] }
-serde_json = "1.0.63"
-tokio = { version = "1.2.0", features = [
+serde = { version = "1.0.144", features = ["derive"] }
+serde_json = "1.0.85"
+tokio = { version = "1.21.1", features = [
     "fs",
     "io-util",
     "macros",
@@ -41,7 +57,7 @@ tokio = { version = "1.2.0", features = [
     "time",
     "net",
 ] }
-tokio-stream = { version = "0.1.5", features = ['net'] }
-tracing = "0.1.25"
-tracing-subscriber = "0.2.16"
-warp = "0.3.0"
+tokio-stream = { version = "0.1.9", features = ['net'] }
+tracing = "0.1.36"
+tracing-subscriber = "0.3.15"
+warp = "0.3.2"

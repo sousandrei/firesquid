@@ -94,9 +94,8 @@ async fn get_process(pid: u32) -> Result<bool, std::io::Error> {
         Err(e) => Err(e),
         Ok(output) => {
             let output = String::from_utf8_lossy(&output.stdout);
-            let output: Vec<&str> = output.split('\n').collect();
-
-            Ok(output.contains(&pid.to_string().as_str()))
+            let output = output.split('\n').any(|x| x == pid.to_string().as_str());
+            Ok(output)
         }
     }
 }

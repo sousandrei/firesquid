@@ -20,7 +20,7 @@ pub async fn get_vms(state_ptr: StatePtr) -> Vec<Vm> {
         new_vms.push(item.clone());
     }
 
-    return new_vms;
+    new_vms
 }
 
 pub async fn add_vm(state_ptr: StatePtr, name: &str, pid: u32) {
@@ -43,9 +43,7 @@ pub async fn remove_vm(state_ptr: StatePtr, name: &str) {
 pub async fn get_vm_pid(state_ptr: StatePtr, name: &str) -> Option<u32> {
     let vms = state_ptr.read().await;
 
-    if let Some(index) = vms.iter().position(|vm| vm.name == name) {
-        return Option::Some(vms[index].pid);
-    } else {
-        return Option::None;
-    }
+    vms.iter()
+        .position(|vm| vm.name == name)
+        .map(|index| vms[index].pid)
 }
