@@ -1,28 +1,25 @@
-name: Main
+name: Branches
 
 on:
-  push:
-    branches:
-      - main
+  pull_request:
+    types: [opened, reopened, synchronize]
+    branches-ignore:
+      - "release-please-*"
+
+  workflow_dispatch:
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  main:
+  ci:
     runs-on: ubuntu-latest
-
-    permissions:
-      issues: write
-      contents: write
-      packages: write
-      pull-requests: write
 
     steps:
       - uses: actions/checkout@v3
 
       - uses: actions-rs/toolchain@v1
-        name: Installing Rust Toolchain
+        name: installing toolchain
         with:
           profile: default
           toolchain: stable
@@ -33,26 +30,19 @@ jobs:
         uses: Swatinem/rust-cache@v2.0.0
 
       - uses: actions-rs/cargo@v1
-        name: Cargo Fmt
+        name: fmt
         with:
           command: fmt
           args: --all -- --check
 
       - uses: actions-rs/cargo@v1
-        name: Cargo Clippy
+        name: clippy
         with:
           command: clippy
           args: --release -- -D warnings
 
       - uses: actions-rs/cargo@v1
-        name: Cargo Build
+        name: build
         with:
           command: build
           args: --release
-
-      - uses: google-github-actions/release-please-action@v3
-        name: Release
-        id: release
-        with:
-          release-type: rust
-          package-name: firesquid
