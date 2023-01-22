@@ -61,7 +61,7 @@ pub fn delete_file(path: PathBuf) -> Result<(), std::io::Error> {
 }
 
 fn validate_path(path: &Path) -> Result<(), std::io::Error> {
-    match fs::canonicalize(&path) {
+    match fs::canonicalize(path) {
         Ok(p) => &p,
         Err(e) => match e.kind() {
             ErrorKind::NotFound => path,

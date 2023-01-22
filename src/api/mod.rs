@@ -21,7 +21,7 @@ fn with_state(
 
 pub fn router(
     state_ptr: StatePtr,
-) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     // 404
     let not_found = warp::path::end().map(|| "Hello, World at root!");
 
