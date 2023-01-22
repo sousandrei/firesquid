@@ -30,7 +30,7 @@ jobs:
           components: rustfmt, clippy
 
       - name: Rust Cache
-        uses: Swatinem/rust-cache@v2.0.1
+        uses: Swatinem/rust-cache@v2.2.0
 
       - uses: actions-rs/cargo@v1
         name: Cargo Fmt
