@@ -41,7 +41,7 @@ section = "admin"
 
 [dependencies]
 chrono = "0.4.22"
-clap = { version = "3.2.22", features = ["yaml"] }
+clap = { version = "4.2.5", features = ["yaml"] }
 hyper = { version = "0.14.20", features = ["client"] }
 hyperlocal = "0.8.0"
 serde = { version = "1.0.144", features = ["derive"] }
