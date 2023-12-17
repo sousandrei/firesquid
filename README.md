@@ -31,26 +31,43 @@ It abstracts the hard part making it a breeze to spawn your very own fleet of mi
 
 ## <a name="features"></a> Features
 
-- REST API for interactions
+- REST API
 - Multiple vms from the same kernel
 - Lightweight
 - Customizable
 
 Upcoming:
 
-- Networking
-- Proper package release and distribution
+- Fine grained networking
+- Package release and distribution
 - Choices between which kernel to use for which machine
 
 ## <a name="help-wanted"></a> Assets 📦
 
 Here are some assets to get you started. The default folder for assets is just called `assets` in the same folder as FireSquid.
 
-[Linux Kernel 5.9-rc2][kernel] compiled with firecracker recommended settings
+Grab the assets listed in the official firecracker guide
 
-[sample rootfs.ext4][rootfs] build from the `node-alpine` docker image. Boots, sleeps 3 seconds and then powers off.
+```
+ARCH="$(uname -m)"
 
-[firecracker][firecracker] releases, grab one accordingly
+mkdir assets
+
+# Download a linux kernel binary
+wget https://s3.amazonaws.com/spec.ccfc.min/firecracker-ci/v1.6/${ARCH}/vmlinux-5.10.198 -P assets/vmlinux
+
+# Download a rootfs
+wget https://s3.amazonaws.com/spec.ccfc.min/firecracker-ci/v1.6/${ARCH}/ubuntu-22.04.ext4 -P assets/rootfs.ext4
+
+# Download the official firecracker binary
+release_url="https://github.com/firecracker-microvm/firecracker/releases"
+latest=$(basename $(curl -fsSLI -o /dev/null -w  %{url_effective} ${release_url}/latest))
+curl -L ${release_url}/download/${latest}/firecracker-${latest}-${ARCH}.tgz \
+| tar -xz release-${latest}-${ARCH}/firecracker-${latest}-${ARCH} --strip-components=1
+
+# Rename the binary to "firecracker"
+mv firecracker-${latest}-${ARCH} assets/firecracker
+```
 
 ## <a name="help-wanted"></a> Help wanted 🤝
 
@@ -65,7 +82,3 @@ you?
 ## <a name="license"></a> License
 
 See [LICENSE](https://github.com/sousandrei/firesquid/blob/master/LICENSE) for more details.
-
-[rootfs]: https://storage.googleapis.com/firesquid/rootfs.ext4
-[kernel]: https://storage.googleapis.com/firesquid/vmlinux
-[firecracker]: https://github.com/firecracker-microvm/firecracker/releases
