@@ -50,9 +50,29 @@ jobs:
           command: build
           args: --release
 
+      - name: Get assets
+        run: curl -fsSL https://github.com/sousandrei/firesquid/blob/main/scripts/getassets.sh | sh
+
+      - uses: actions-rs/cargo@v1
+        name: Install Cargo Deb
+        with:
+          command: install
+          args: cargo-deb
+
+      - uses: actions-rs/cargo@v1
+        name: Build Debian Package
+        with:
+          command: deb
+
       - uses: google-github-actions/release-please-action@v4
         name: Release
         id: release
         with:
           release-type: rust
           package-name: firesquid
+
+      - name: Upload Release Artifact
+        if: ${{ steps.release.outputs.release_created }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload ${{ steps.release.outputs.tag_name }} ./target/debian/*.deb
