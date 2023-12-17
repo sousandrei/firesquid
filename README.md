@@ -49,7 +49,7 @@ Here are some assets to get you started. The default folder for assets is just c
 Grab the assets listed in the official firecracker guide. There is a [script](https://github.com/sousandrei/firesquid/blob/main/scripts/getassets.sh) provided in this repo to set this up
 
 ```
-curl -fsSL https://github.com/sousandrei/firesquid/blob/main/scripts/getassets.sh | sh
+curl -fsSL https://raw.githubusercontent.com/sousandrei/firesquid/main/scripts/getassets.sh | sh
 ```
 
 ## <a name="help-wanted"></a> Help wanted 🤝
