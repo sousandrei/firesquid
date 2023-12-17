@@ -47,13 +47,21 @@ pub async fn new() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         .get_matches();
 
     let (subcommand, arg_matches) = matches.subcommand().expect("command not present");
-    let name = arg_matches.value_of("machine_name").unwrap_or("");
 
     match subcommand {
         "list" => list().await,
-        "spawn" => spawn(name).await,
-        "kill" => kill(name).await,
-        "delete" => delete(name).await,
+        "spawn" => {
+            let name = arg_matches.value_of("machine_name").unwrap_or("");
+            spawn(name).await
+        }
+        "kill" => {
+            let name = arg_matches.value_of("machine_name").unwrap_or("");
+            kill(name).await
+        }
+        "delete" => {
+            let name = arg_matches.value_of("machine_name").unwrap_or("");
+            delete(name).await
+        }
         _ => unreachable!(),
     }
 }
