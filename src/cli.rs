@@ -1,5 +1,5 @@
 use bytes::Bytes;
-use clap::{App, AppSettings, Arg, SubCommand};
+use clap::{Arg, Command};
 use http_body_util::{BodyExt, Empty};
 use hyper::body::Buf;
 use hyper::StatusCode;
@@ -9,39 +9,39 @@ use crate::consts::SOCKET;
 use crate::state::Vm;
 
 pub async fn new() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let matches = App::new("firesquid")
-        .setting(AppSettings::SubcommandRequiredElseHelp)
+    let matches = clap::Command::new("firesquid")
+        .subcommand_required(true)
         .subcommand(
-            SubCommand::with_name("list")
+            Command::new("list")
                 .alias("l")
                 .about("List all running machines"),
         )
         .subcommand(
-            SubCommand::with_name("spawn")
+            Command::new("spawn")
                 .alias("s")
                 .about("Spawns a machine with given name")
                 .arg(
-                    Arg::with_name("machine_name")
+                    Arg::new("machine_name")
                         .help("Name of the machine to spawn")
                         .required(true),
                 ),
         )
         .subcommand(
-            SubCommand::with_name("kill")
+            Command::new("kill")
                 .alias("k")
                 .about("Gracefully shutdown given machine")
                 .arg(
-                    Arg::with_name("machine_name")
+                    Arg::new("machine_name")
                         .help("Name of the machine")
                         .required(true),
                 ),
         )
         .subcommand(
-            SubCommand::with_name("delete")
+            Command::new("delete")
                 .alias("d")
                 .about("Instant stop and remove given machine")
                 .arg(
-                    Arg::with_name("machine_name")
+                    Arg::new("machine_name")
                         .help("Name of the machine")
                         .required(true),
                 ),
@@ -53,15 +53,27 @@ pub async fn new() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     match subcommand {
         "list" => list().await,
         "spawn" => {
-            let name = arg_matches.value_of("machine_name").unwrap_or("");
+            let name = arg_matches
+                .get_one::<String>("machine_name")
+                .map(|s| s.as_str())
+                .unwrap();
+
             spawn(name).await
         }
         "kill" => {
-            let name = arg_matches.value_of("machine_name").unwrap_or("");
+            let name = arg_matches
+                .get_one::<String>("machine_name")
+                .map(|s| s.as_str())
+                .unwrap();
+
             kill(name).await
         }
         "delete" => {
-            let name = arg_matches.value_of("machine_name").unwrap_or("");
+            let name = arg_matches
+                .get_one::<String>("machine_name")
+                .map(|s| s.as_str())
+                .unwrap();
+
             delete(name).await
         }
         _ => unreachable!(),
