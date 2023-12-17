@@ -51,7 +51,9 @@ fn handle_io<T: 'static + AsyncRead + Send + Sync + Unpin>(
     tokio::spawn(async move {
         let mut reader = BufReader::new(io).lines();
 
-        let mut stdout = File::create(&format!("{}/{}-{}.{}", LOG_DIR, name, time, extension))
+        let time_text = time.format("%Y-%m-%d-%H-%M-%S").to_string();
+
+        let mut stdout = File::create(&format!("{}/{}-{}.{}", LOG_DIR, name, time_text, extension))
             .await
             .expect("error opening stdout");
 
@@ -100,7 +102,7 @@ pub async fn start_machine(vm_name: &str) -> Result<(), RuntimeError> {
         "action_type": "InstanceStart",
     });
 
-    info!("Starting [{}]", vm_name);
+    info!("Start Machine [{}]", vm_name);
 
     http::send_request(vm_name, url, &body.to_string()).await
 }

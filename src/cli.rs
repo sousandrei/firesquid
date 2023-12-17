@@ -1,6 +1,8 @@
+use bytes::Bytes;
 use clap::{App, AppSettings, Arg, SubCommand};
-use hyper::{body::Buf, Body, Client, Request, StatusCode};
-use hyperlocal::{UnixClientExt, UnixConnector};
+use http_body_util::{BodyExt, Empty};
+use hyper::body::Buf;
+use hyper::StatusCode;
 
 use crate::api::VmInput;
 use crate::consts::SOCKET;
@@ -66,23 +68,16 @@ pub async fn new() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     }
 }
 
-fn get_client_url(path: Option<&str>) -> (Client<UnixConnector>, hyper::Uri) {
-    let path = match path {
-        Some(value) => format!("/{}", value),
-        None => "/".to_string(),
-    };
-
-    let url = hyperlocal::Uri::new(SOCKET, &path).into();
-    let client = Client::unix();
-
-    (client, url)
-}
-
 async fn list() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let (client, url) = get_client_url(None);
+    let mut client = unix_client::get_client(SOCKET).await.unwrap();
 
-    let res = client.get(url).await?;
-    let body = hyper::body::aggregate(res).await?;
+    let req = hyper::Request::builder()
+        .uri("/")
+        .body(Empty::<Bytes>::new())?;
+
+    let res = client.send_request(req).await?;
+
+    let body = res.collect().await?.aggregate();
 
     let vms: Vec<Vm> = serde_json::from_reader(body.reader())?;
 
@@ -94,19 +89,19 @@ async fn list() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 }
 
 async fn spawn(name: &str) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let (client, url) = get_client_url(None);
+    let mut client = unix_client::get_client(SOCKET).await.unwrap();
 
-    let body = Body::from(serde_json::to_string(&VmInput {
+    let body = serde_json::to_string(&VmInput {
         vm_name: String::from(name),
-    })?);
+    })?;
 
-    let req = Request::builder()
+    let req = hyper::Request::builder()
         .method("POST")
-        .uri(url)
+        .uri("/")
         .body(body)
         .expect("request builder");
 
-    let res = client.request(req).await?;
+    let res = client.send_request(req).await?;
     let status = res.status();
 
     match status {
@@ -118,19 +113,19 @@ async fn spawn(name: &str) -> Result<(), Box<dyn std::error::Error + Send + Sync
 }
 
 async fn kill(name: &str) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let (client, url) = get_client_url(Some("kill"));
+    let mut client = unix_client::get_client(SOCKET).await.unwrap();
 
-    let body = Body::from(serde_json::to_string(&VmInput {
+    let body = serde_json::to_string(&VmInput {
         vm_name: String::from(name),
-    })?);
+    })?;
 
-    let req = Request::builder()
+    let req = hyper::Request::builder()
         .method("POST")
-        .uri(url)
+        .uri("/kill")
         .body(body)
         .expect("request builder");
 
-    let res = client.request(req).await?;
+    let res = client.send_request(req).await?;
     let status = res.status();
 
     match status {
@@ -142,19 +137,19 @@ async fn kill(name: &str) -> Result<(), Box<dyn std::error::Error + Send + Sync>
 }
 
 async fn delete(name: &str) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let (client, url) = get_client_url(None);
+    let mut client = unix_client::get_client(SOCKET).await.unwrap();
 
-    let body = Body::from(serde_json::to_string(&VmInput {
+    let body = serde_json::to_string(&VmInput {
         vm_name: String::from(name),
-    })?);
+    })?;
 
-    let req = Request::builder()
+    let req = hyper::Request::builder()
         .method("DELETE")
-        .uri(url)
+        .uri("/")
         .body(body)
         .expect("request builder");
 
-    let res = client.request(req).await?;
+    let res = client.send_request(req).await?;
     let status = res.status();
 
     match status {

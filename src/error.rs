@@ -19,8 +19,8 @@ impl From<hyper::Error> for RuntimeError {
     }
 }
 
-impl From<warp::http::Error> for RuntimeError {
-    fn from(error: warp::http::Error) -> RuntimeError {
+impl From<hyper::http::Error> for RuntimeError {
+    fn from(error: hyper::http::Error) -> RuntimeError {
         RuntimeError::new(&error.to_string())
     }
 }

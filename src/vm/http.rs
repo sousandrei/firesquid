@@ -1,6 +1,4 @@
-use hyper::{Body, Client, Method, Request};
-use hyperlocal::{UnixClientExt, Uri};
-use std::path::Path;
+use hyper::{Method, Request};
 use tracing::info;
 
 use crate::consts::TMP_DIR;
@@ -8,21 +6,20 @@ use crate::error::RuntimeError;
 
 pub async fn send_request(vm_name: &str, url: &str, body: &str) -> Result<(), RuntimeError> {
     let vm_path = format!("{}/{}.socket", TMP_DIR, vm_name);
-    let path = Path::new(&vm_path);
-    let url: Uri = Uri::new(path, url);
+    let url = format!("http://localhost/{}", url);
 
-    let client = Client::unix();
+    let mut client = unix_client::get_client(&vm_path).await.unwrap();
 
     let req = Request::builder()
         .method(Method::PUT)
         .uri(url)
         .header("Accept", "application/json")
         .header("Content-Type", "application/json")
-        .body(Body::from(body.to_owned()))?;
+        .body(body.to_owned())?;
 
-    let res = client.request(req).await?;
+    let res = client.send_request(req).await?;
 
-    info!("{}, {}", path.display(), res.status());
+    info!("{}, {}", vm_path, res.status());
 
     Ok(())
 }
