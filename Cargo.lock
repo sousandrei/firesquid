@@ -222,7 +222,6 @@ dependencies = [
  "clap",
  "http-body-util",
  "hyper 1.0.1",
- "pin-project-lite",
  "serde",
  "serde_json",
  "tokio",
