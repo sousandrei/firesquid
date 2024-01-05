@@ -16,7 +16,7 @@ pub async fn get_vms(state_ptr: StatePtr) -> Vec<Vm> {
     let vms = state_ptr.read().await;
 
     let mut new_vms: Vec<Vm> = Vec::new();
-    for (_, item) in vms.iter().enumerate() {
+    for item in vms.iter() {
         new_vms.push(item.clone());
     }
 
