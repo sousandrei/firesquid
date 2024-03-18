@@ -58,7 +58,7 @@ tokio = { version = "1.36.0", features = [
     "sync",
     "time",
 ] }
-tokio-stream = { version = "0.1.9", features = ['net'] }
+tokio-stream = { version = "0.1.15", features = ['net'] }
 tracing = "0.1.36"
 tracing-subscriber = "0.3.15"
 warp = "0.3.6"
