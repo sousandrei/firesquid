@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1](https://github.com/sousandrei/firesquid/compare/v0.1.0...v0.1.1) (2024-06-13)
+
+
+### Bug Fixes
+
+* **lint:** clippy ([8125edc](https://github.com/sousandrei/firesquid/commit/8125edc71c2beae0c85f827b94c8d183600f5b9a))
+
 ## 0.1.0 (2023-12-17)
 
 
