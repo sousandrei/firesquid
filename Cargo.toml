@@ -42,7 +42,7 @@ section = "admin"
 [dependencies]
 unix-client = { path = "unix-client" }
 
-bytes = "1.6.0"
+bytes = "1.6.1"
 chrono = "0.4.38"
 clap = "4.5.9"
 http-body-util = "0.1.2"
