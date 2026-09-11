@@ -40,6 +40,10 @@ must never be world-writable.
 - Use the Rust edition and MSRV declared in `Cargo.toml`.
 - Prefer a Cargo workspace with small crates or clearly separated modules when
   introducing the 1.0 boundaries.
+- Use blank lines to separate cognitively related code sections, including
+  imports, declarations, implementation groups, control-flow branches, and
+  test cases. Prefer readable sections over densely packed blocks, while
+  avoiding decorative blank lines inside a single expression.
 - Use `Result` with structured error types and actionable context. Avoid
   `unwrap()` and `expect()` in runtime, daemon, CLI, and request-handling paths;
   use them only for genuine startup invariants that cannot fail meaningfully.
