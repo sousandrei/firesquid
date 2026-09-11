@@ -57,12 +57,14 @@ pub async fn start(state: &SharedState, id: &str) -> Result<(), Error> {
     }
 
     state.mark_running(id, pid).await?;
+    tracing::info!(vm_id = id, pid, "VM started");
     let state = state.clone();
     let id = id.to_owned();
     tokio::spawn(async move {
         let result = child.wait().await;
         match result {
             Ok(status) if status.success() => {
+                tracing::info!(vm_id = %id, "Firecracker exited successfully");
                 let _ = state.mark_stopped(&id).await;
             }
             Ok(status) => {
@@ -86,17 +88,7 @@ pub async fn start(state: &SharedState, id: &str) -> Result<(), Error> {
 pub async fn stop(state: &SharedState, id: &str) -> Result<(), Error> {
     let vm = active_vm(state, id).await?;
     state.mark_stopping(id).await?;
-    FirecrackerClient::new(state.config.vm_socket(&vm.id))
-        .action("SendCtrlAltDel")
-        .await?;
-
-    for _ in 0..50 {
-        sleep(Duration::from_millis(100)).await;
-        if matches!(state.get_vm(id).await?, Some(vm) if vm.status == VmStatus::Stopped) {
-            return Ok(());
-        }
-    }
-
+    tracing::info!(vm_id = id, "sending SIGTERM to VM");
     let pid = vm
         .pid
         .ok_or_else(|| Error::Runtime(format!("VM has no process ID: {id}")))?;
@@ -106,12 +98,15 @@ pub async fn stop(state: &SharedState, id: &str) -> Result<(), Error> {
         ),
         Signal::SIGTERM,
     )
-    .map_err(|error| Error::Runtime(format!("failed to stop VM after timeout: {error}")))?;
-    state.mark_stopped(id).await
+    .map_err(|error| Error::Runtime(format!("failed to stop VM: {error}")))?;
+    state.mark_stopped(id).await?;
+    tracing::info!(vm_id = id, "VM marked stopped after SIGTERM");
+    Ok(())
 }
 
 pub async fn kill(state: &SharedState, id: &str) -> Result<(), Error> {
     let vm = active_vm(state, id).await?;
+    tracing::warn!(vm_id = id, "sending SIGKILL to VM");
     let pid = vm
         .pid
         .ok_or_else(|| Error::Runtime(format!("VM has no process ID: {id}")))?;
@@ -122,7 +117,9 @@ pub async fn kill(state: &SharedState, id: &str) -> Result<(), Error> {
         Signal::SIGKILL,
     )
     .map_err(|error| Error::Runtime(format!("failed to kill VM: {error}")))?;
-    state.mark_stopped(id).await
+    state.mark_stopped(id).await?;
+    tracing::info!(vm_id = id, "VM marked stopped after SIGKILL");
+    Ok(())
 }
 
 async fn is_stopped(state: &SharedState, id: &str) -> bool {
