@@ -1,13 +1,10 @@
-use warp::http::StatusCode;
+use axum::{Json, extract::State, http::StatusCode, response::IntoResponse};
 
 use crate::state;
 use crate::state::StatePtr;
 
-pub async fn handler(state_ptr: StatePtr) -> Result<impl warp::Reply, warp::Rejection> {
+pub async fn handler(State(state_ptr): State<StatePtr>) -> impl IntoResponse {
     let vms = state::get_vms(state_ptr).await;
 
-    Ok(warp::reply::with_status(
-        warp::reply::json(&vms),
-        StatusCode::OK,
-    ))
+    (StatusCode::OK, Json(vms))
 }

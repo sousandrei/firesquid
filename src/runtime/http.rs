@@ -8,7 +8,7 @@ pub async fn send_request(vm_name: &str, url: &str, body: &str) -> Result<(), Ru
     let vm_path = format!("{}/{}.socket", TMP_DIR, vm_name);
     let url = format!("http://localhost/{}", url);
 
-    let mut client = unix_client::get_client(&vm_path).await.unwrap();
+    let mut client = crate::unix_client::get_client(&vm_path).await.unwrap();
 
     let req = Request::builder()
         .method(Method::PUT)

@@ -1,5 +1,8 @@
+use axum::{
+    Router,
+    routing::{get, post},
+};
 use serde::{Deserialize, Serialize};
-use warp::Filter;
 
 mod create;
 mod delete;
@@ -13,47 +16,31 @@ pub struct VmInput {
     pub vm_name: String,
 }
 
-fn with_state(
-    state_ptr: StatePtr,
-) -> impl Filter<Extract = (StatePtr,), Error = std::convert::Infallible> + Clone {
-    warp::any().map(move || state_ptr.clone())
+pub fn router(state_ptr: StatePtr) -> Router {
+    Router::new()
+        .route(
+            "/",
+            get(list::handler)
+                .post(create::handler)
+                .delete(delete::handler),
+        )
+        .route("/kill", post(kill::handler))
+        .with_state(state_ptr)
 }
 
-pub fn router(
-    state_ptr: StatePtr,
-) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
-    // 404
-    let not_found = warp::path::end().map(|| "Hello, World at root!");
+#[cfg(test)]
+mod tests {
+    use super::VmInput;
 
-    let route_create = warp::path::end()
-        .and(warp::post())
-        .and(warp::body::json())
-        .and(with_state(state_ptr.clone()))
-        .and_then(create::handler);
+    #[test]
+    fn vm_input_uses_stable_json_field_name() {
+        let input = VmInput {
+            vm_name: "demo".to_owned(),
+        };
 
-    let route_delete = warp::path::end()
-        .and(warp::delete())
-        .and(warp::body::json())
-        .and(with_state(state_ptr.clone()))
-        .and_then(delete::handler);
-
-    let route_kill = warp::path!("kill")
-        .and(warp::post())
-        .and(warp::body::json())
-        .and(with_state(state_ptr.clone()))
-        .and_then(kill::handler);
-
-    let route_list = warp::path::end()
-        .and(warp::get())
-        .and(with_state(state_ptr))
-        .and_then(list::handler);
-
-    // routes
-    let routes = route_create
-        .or(route_delete)
-        .or(route_kill)
-        .or(route_list)
-        .or(not_found);
-
-    routes.with(warp::log("firesquid::api"))
+        assert_eq!(
+            serde_json::to_string(&input).unwrap(),
+            r#"{"vm_name":"demo"}"#
+        );
+    }
 }

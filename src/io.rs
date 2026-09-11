@@ -69,7 +69,7 @@ fn validate_path(path: &Path) -> Result<(), std::io::Error> {
                 return Err(Error::new(
                     ErrorKind::InvalidInput,
                     format!("Error validating path [{}]", path.display()),
-                ))
+                ));
             }
         },
     };

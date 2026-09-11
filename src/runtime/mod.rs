@@ -14,7 +14,7 @@ pub async fn spawn(name: &str, state_ptr: StatePtr) -> Result<(), RuntimeError> 
     if state::get_vm_pid(state_ptr.clone(), &name).await.is_some() {
         return Err(RuntimeError::new(&format!(
             "Vm name already used [{}]",
-            &name
+            name
         )));
     }
 
@@ -39,7 +39,7 @@ pub async fn spawn(name: &str, state_ptr: StatePtr) -> Result<(), RuntimeError> 
 
                     drive::delete_drive(&name).unwrap();
                     socket::delete_socket(&name).unwrap();
-                }
+                };
             }
         };
 

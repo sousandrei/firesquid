@@ -4,13 +4,13 @@ use std::process::Stdio;
 use tokio::io::AsyncRead;
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command;
-use tokio::time::{sleep, Duration};
+use tokio::time::{Duration, sleep};
 use tokio::{fs::File, io::AsyncWriteExt};
 use tracing::info;
 
 use crate::consts::{ASSETS_DIR, KERNEL_NAME, LOG_DIR, TMP_DIR};
 use crate::error::RuntimeError;
-use crate::vm::http;
+use crate::runtime::http;
 
 pub async fn spawn_process(vm_name: &str) -> Result<tokio::process::Child, RuntimeError> {
     let mut child = Command::new("firecracker")

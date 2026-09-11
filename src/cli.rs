@@ -1,8 +1,8 @@
 use bytes::Bytes;
 use clap::{Arg, Command};
 use http_body_util::{BodyExt, Empty};
-use hyper::body::Buf;
 use hyper::StatusCode;
+use hyper::body::Buf;
 
 use crate::api::VmInput;
 use crate::consts::SOCKET;
@@ -81,7 +81,7 @@ pub async fn new() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 }
 
 async fn list() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let mut client = unix_client::get_client(SOCKET).await.unwrap();
+    let mut client = crate::unix_client::get_client(SOCKET).await.unwrap();
 
     let req = hyper::Request::builder()
         .uri("/")
@@ -101,7 +101,7 @@ async fn list() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 }
 
 async fn spawn(name: &str) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let mut client = unix_client::get_client(SOCKET).await.unwrap();
+    let mut client = crate::unix_client::get_client(SOCKET).await.unwrap();
 
     let body = serde_json::to_string(&VmInput {
         vm_name: String::from(name),
@@ -125,7 +125,7 @@ async fn spawn(name: &str) -> Result<(), Box<dyn std::error::Error + Send + Sync
 }
 
 async fn kill(name: &str) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let mut client = unix_client::get_client(SOCKET).await.unwrap();
+    let mut client = crate::unix_client::get_client(SOCKET).await.unwrap();
 
     let body = serde_json::to_string(&VmInput {
         vm_name: String::from(name),
@@ -149,7 +149,7 @@ async fn kill(name: &str) -> Result<(), Box<dyn std::error::Error + Send + Sync>
 }
 
 async fn delete(name: &str) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let mut client = unix_client::get_client(SOCKET).await.unwrap();
+    let mut client = crate::unix_client::get_client(SOCKET).await.unwrap();
 
     let body = serde_json::to_string(&VmInput {
         vm_name: String::from(name),

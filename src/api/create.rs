@@ -1,22 +1,19 @@
+use axum::{Json, extract::State, http::StatusCode, response::IntoResponse};
 use tracing::error;
-use warp::http::StatusCode;
 
 use super::VmInput;
+use crate::runtime;
 use crate::state::StatePtr;
-use crate::vm;
 
 pub async fn handler(
-    body: VmInput,
-    state_ptr: StatePtr,
-) -> Result<Box<dyn warp::Reply>, warp::Rejection> {
-    if let Err(e) = vm::spawn(&body.vm_name, state_ptr).await {
+    State(state_ptr): State<StatePtr>,
+    Json(body): Json<VmInput>,
+) -> impl IntoResponse {
+    if let Err(e) = runtime::spawn(&body.vm_name, state_ptr).await {
         error!("{}", e);
 
-        return Ok(Box::new(warp::reply::with_status(
-            e.to_string(),
-            StatusCode::BAD_REQUEST,
-        )));
+        return (StatusCode::BAD_REQUEST, e.to_string()).into_response();
     };
 
-    Ok(Box::new(StatusCode::CREATED))
+    StatusCode::CREATED.into_response()
 }
