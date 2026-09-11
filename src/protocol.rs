@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 
-use crate::{error::Error, state::Vm};
+use crate::{error::Error, runtime::VmMetrics, state::Vm};
 
 pub const VERSION: u16 = 1;
 const MAX_FRAME_SIZE: u32 = 1024 * 1024;
@@ -53,11 +53,17 @@ pub struct Response {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum ResponseBody {
-    Status { service: String },
+    Status { service: String, vms: Vec<VmInfo> },
     VmList(Vec<Vm>),
-    Vm(Vm),
+    Vm(VmInfo),
     Logs(String),
     Empty,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct VmInfo {
+    pub vm: Vm,
+    pub metrics: VmMetrics,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

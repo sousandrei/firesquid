@@ -1,14 +1,12 @@
 use crate::{
     error::Error,
-    protocol::{Operation, ResponseBody},
+    protocol::{Operation, ResponseBody, VmInfo},
     runtime,
     state::{SharedState, VmSpec, VmStatus},
 };
 pub async fn handle(state: &SharedState, operation: Operation) -> Result<ResponseBody, Error> {
     match operation {
-        Operation::Status => Ok(ResponseBody::Status {
-            service: "firesquid".to_owned(),
-        }),
+        Operation::Status => status(state).await,
         Operation::VmList => list(state).await,
         Operation::VmCreate {
             name,
@@ -42,8 +40,31 @@ async fn list(state: &SharedState) -> Result<ResponseBody, Error> {
     state.list_vms().await.map(ResponseBody::VmList)
 }
 
+async fn status(state: &SharedState) -> Result<ResponseBody, Error> {
+    let vms = state
+        .list_vms()
+        .await?
+        .into_iter()
+        .map(info)
+        .collect::<Vec<_>>();
+    let mut enriched = Vec::with_capacity(vms.len());
+    for vm in vms {
+        enriched.push(vm.await?);
+    }
+    Ok(ResponseBody::Status {
+        service: "firesquid".to_owned(),
+        vms: enriched,
+    })
+}
+
+async fn info(vm: crate::state::Vm) -> Result<VmInfo, Error> {
+    let metrics = crate::runtime::collect_metrics(&vm).await?;
+    Ok(VmInfo { vm, metrics })
+}
+
 async fn create(state: &SharedState, spec: VmSpec) -> Result<ResponseBody, Error> {
-    state.create_vm_with_spec(&spec).await.map(ResponseBody::Vm)
+    let vm = state.create_vm_with_spec(&spec).await?;
+    Ok(ResponseBody::Vm(info(vm).await?))
 }
 
 async fn start(state: &SharedState, id: &str) -> Result<ResponseBody, Error> {
@@ -59,11 +80,11 @@ async fn kill(state: &SharedState, id: &str) -> Result<ResponseBody, Error> {
 }
 
 async fn inspect(state: &SharedState, id: &str) -> Result<ResponseBody, Error> {
-    state
+    let vm = state
         .get_vm(id)
         .await?
-        .map(ResponseBody::Vm)
-        .ok_or_else(|| Error::InvalidRequest(format!("VM not found: {id}")))
+        .ok_or_else(|| Error::InvalidRequest(format!("VM not found: {id}")))?;
+    Ok(ResponseBody::Vm(info(vm).await?))
 }
 
 async fn delete(state: &SharedState, id: &str) -> Result<ResponseBody, Error> {

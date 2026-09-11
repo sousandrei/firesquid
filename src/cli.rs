@@ -194,8 +194,16 @@ pub async fn run() -> Result<(), Error> {
             let body = request(Operation::Status).await?;
             if json {
                 print_json(&body)
-            } else if let ResponseBody::Status { service } = body {
+            } else if let ResponseBody::Status { service, vms } = body {
                 println!("{service} is running");
+                println!();
+                println!(
+                    "{:<16} {:<16} {:<9} {:>8} {:>10} {:>10} {:>10}",
+                    "ID", "NAME", "STATUS", "CPU", "MEMORY", "READ", "WRITE"
+                );
+                for info in vms {
+                    print_vm_summary(&info);
+                }
                 Ok(())
             } else {
                 Err(Error::Protocol("unexpected status response".to_owned()))
@@ -280,17 +288,78 @@ fn print_response(body: ResponseBody, json: bool) -> Result<(), Error> {
     }
 
     match body {
-        ResponseBody::Status { service } => println!("{service} is running"),
+        ResponseBody::Status { service, .. } => println!("{service} is running"),
         ResponseBody::VmList(vms) => {
             for vm in vms {
                 println!("{}\t{}\t{}", vm.id, vm.name, vm.status);
             }
         }
-        ResponseBody::Vm(vm) => println!("{}\t{}\t{}", vm.id, vm.name, vm.status),
+        ResponseBody::Vm(info) => print_vm_details(&info),
         ResponseBody::Logs(logs) => print!("{logs}"),
         ResponseBody::Empty => println!("ok"),
     }
     Ok(())
+}
+
+fn print_vm_summary(info: &protocol::VmInfo) {
+    println!(
+        "{:<16} {:<16} {:<9} {:>7.1}% {:>10} {:>10} {:>10}",
+        info.vm.id,
+        info.vm.name,
+        info.vm.status,
+        info.metrics.cpu_usage_percent,
+        format_bytes(info.metrics.memory_bytes),
+        format_bytes(info.metrics.read_bytes),
+        format_bytes(info.metrics.write_bytes),
+    );
+}
+
+fn print_vm_details(info: &protocol::VmInfo) {
+    println!("VM:      {} ({})", info.vm.name, info.vm.id);
+    println!("Status:  {}", info.vm.status);
+    if let Some(error) = &info.vm.last_error {
+        println!("Error:   {error}");
+    }
+    println!("Created: {}", info.vm.created_at);
+    println!(
+        "PID:     {}",
+        info.vm
+            .pid
+            .map_or_else(|| "-".to_owned(), |pid| pid.to_string())
+    );
+    println!("Kernel:  {}", info.vm.kernel_path);
+    println!("Rootfs:  {}", info.vm.rootfs_path);
+    println!("vCPUs:   {}", info.vm.vcpus);
+    println!("Memory:  {} MiB configured", info.vm.memory_mib);
+    println!();
+    println!("Runtime metrics:");
+    println!("  CPU:       {:.1}%", info.metrics.cpu_usage_percent);
+    println!("  Resident:  {}", format_bytes(info.metrics.memory_bytes));
+    println!("  Read:      {}", format_bytes(info.metrics.read_bytes));
+    println!("  Write:     {}", format_bytes(info.metrics.write_bytes));
+    println!(
+        "  Network RX: {}",
+        format_bytes(info.metrics.network_received_bytes)
+    );
+    println!(
+        "  Network TX: {}",
+        format_bytes(info.metrics.network_transmitted_bytes)
+    );
+}
+
+fn format_bytes(bytes: u64) -> String {
+    const UNITS: [&str; 4] = ["B", "KiB", "MiB", "GiB"];
+    let mut value = bytes as f64;
+    let mut unit = 0;
+    while value >= 1024.0 && unit < UNITS.len() - 1 {
+        value /= 1024.0;
+        unit += 1;
+    }
+    if unit == 0 {
+        format!("{bytes} B")
+    } else {
+        format!("{value:.1} {}", UNITS[unit])
+    }
 }
 
 fn print_json(body: &ResponseBody) -> Result<(), Error> {

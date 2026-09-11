@@ -296,6 +296,7 @@ mod tests {
             vcpus: 1,
             memory_mib: 512,
             pid: None,
+            created_at: String::new(),
         };
 
         assert!(validate_artifacts(&vm).is_err());

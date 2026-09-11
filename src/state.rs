@@ -57,6 +57,7 @@ pub struct Vm {
     pub vcpus: u32,
     pub memory_mib: u32,
     pub pid: Option<u32>,
+    pub created_at: String,
 }
 
 #[derive(Clone)]
@@ -220,6 +221,7 @@ struct VmRow {
     vcpus: i64,
     memory_mib: i64,
     pid: Option<i64>,
+    created_at: String,
 }
 
 impl TryFrom<VmRow> for Vm {
@@ -242,6 +244,7 @@ impl TryFrom<VmRow> for Vm {
                 .map(u32::try_from)
                 .transpose()
                 .map_err(|_| Error::Protocol("invalid process ID in state".to_owned()))?,
+            created_at: row.created_at,
         })
     }
 }

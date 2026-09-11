@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT id, name, status, last_error, kernel_path, rootfs_path, vcpus, memory_mib, pid\nFROM vms\nWHERE id = ?\n",
+  "query": "SELECT id, name, status, last_error, kernel_path, rootfs_path, vcpus, memory_mib, pid, created_at\nFROM vms\nORDER BY name\n",
   "describe": {
     "columns": [
       {
@@ -101,10 +101,21 @@
             "name": "pid"
           }
         }
+      },
+      {
+        "name": "created_at",
+        "ordinal": 9,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "vms",
+            "name": "created_at"
+          }
+        }
       }
     ],
     "parameters": {
-      "Right": 1
+      "Right": 0
     },
     "nullable": [
       false,
@@ -115,8 +126,9 @@
       false,
       false,
       false,
-      true
+      true,
+      false
     ]
   },
-  "hash": "5081a73f303f75382e769d28d25515865fe4d64d4539f74641e5f4ae21e9ae3d"
+  "hash": "10a279abc49dc8fa5fa289329656e87aeb2fe4af69f1acd85502707fbf8616bf"
 }
