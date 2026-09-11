@@ -170,7 +170,21 @@ fn unpack_layer<R: Read>(reader: R, staging: &Path) -> Result<(), Error> {
         {
             continue;
         }
+        remove_existing_non_directory(staging, &relative)?;
         entry.unpack_in(staging)?;
+    }
+    Ok(())
+}
+
+fn remove_existing_non_directory(staging: &Path, relative: &Path) -> Result<(), Error> {
+    let destination = staging.join(relative);
+    let metadata = match std::fs::symlink_metadata(&destination) {
+        Ok(metadata) => metadata,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+        Err(error) => return Err(error.into()),
+    };
+    if !metadata.is_dir() {
+        std::fs::remove_file(destination)?;
     }
     Ok(())
 }
@@ -239,10 +253,24 @@ fn require_file(path: &Path, label: &str) -> Result<(), Error> {
 
 #[cfg(test)]
 mod tests {
-    use super::safe_relative;
+    use super::{remove_existing_non_directory, safe_relative};
 
     #[test]
     fn rejects_archive_path_traversal() {
         assert!(safe_relative(std::path::Path::new("../../etc/passwd")).is_err());
+    }
+
+    #[test]
+    fn removes_existing_file_before_layer_unpack() {
+        let staging =
+            std::env::temp_dir().join(format!("firesquid-image-test-{}", std::process::id()));
+        std::fs::create_dir_all(&staging).unwrap();
+        let destination = staging.join("existing");
+        std::fs::write(&destination, b"old").unwrap();
+
+        remove_existing_non_directory(&staging, std::path::Path::new("existing")).unwrap();
+
+        assert!(!destination.exists());
+        std::fs::remove_dir_all(staging).unwrap();
     }
 }

@@ -18,6 +18,21 @@ pub struct BuildOptions {
     pub jobs: usize,
 }
 
+pub fn clean_cache(config: &Config) -> Result<usize, Error> {
+    let mut removed = 0;
+    let entries = std::fs::read_dir(&config.cache_dir)?;
+    for entry in entries {
+        let entry = entry?;
+        let name = entry.file_name();
+        let name = name.to_string_lossy();
+        if name.starts_with("linux-") || matches!(name.as_ref(), "kernel-build" | "guest-configs") {
+            std::fs::remove_dir_all(entry.path())?;
+            removed += 1;
+        }
+    }
+    Ok(removed)
+}
+
 pub fn build(config: &Config, options: BuildOptions) -> Result<PathBuf, Error> {
     let source = match options.source {
         Some(path) => path,
@@ -49,6 +64,9 @@ pub fn build(config: &Config, options: BuildOptions) -> Result<PathBuf, Error> {
     validate_guest_config(&kernel_config)?;
 
     let output_dir = config.cache_dir.join("kernel-build");
+    if output_dir.exists() {
+        std::fs::remove_dir_all(&output_dir)?;
+    }
     std::fs::create_dir_all(&output_dir)?;
     let output_dir = std::fs::canonicalize(output_dir)?;
     for tool in ["make", "flex", "bison"] {
@@ -66,7 +84,13 @@ pub fn build(config: &Config, options: BuildOptions) -> Result<PathBuf, Error> {
             output.display()
         )));
     }
-    Ok(output)
+    let cache_name = format!("linux-{}", options.tag.replace(['/', '\\'], "_"));
+    let artifact_dir = config.cache_dir.join("kernels").join(cache_name);
+    std::fs::create_dir_all(&artifact_dir)?;
+    let artifact = artifact_dir.join("vmlinux");
+    std::fs::copy(&output, &artifact)?;
+    std::fs::remove_dir_all(output_dir)?;
+    Ok(artifact)
 }
 
 fn run_make(source: &Path, output: &Path, target: &str, jobs: usize) -> Result<(), Error> {

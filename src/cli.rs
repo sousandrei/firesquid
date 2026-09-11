@@ -38,6 +38,10 @@ enum Command {
         #[command(subcommand)]
         command: ImageCommand,
     },
+    Cache {
+        #[command(subcommand)]
+        command: CacheCommand,
+    },
     Vm {
         #[command(subcommand)]
         command: VmCommand,
@@ -70,6 +74,11 @@ enum ImageCommand {
         #[arg(long, default_value_t = 2048)]
         size_mib: u32,
     },
+}
+
+#[derive(Debug, Subcommand)]
+enum CacheCommand {
+    Clean,
 }
 
 #[derive(Debug, Subcommand)]
@@ -154,16 +163,30 @@ pub async fn run() -> Result<(), Error> {
                 let output_for_build = output.clone();
                 run_blocking(move || {
                     let archive = image::prepare(&firesquid_config, &profile)?;
-                    image::build(
+                    let result = image::build(
                         &firesquid_config,
                         &archive,
                         &output_for_build,
                         &init,
                         size_mib,
-                    )
+                    );
+                    let _ =
+                        std::fs::remove_dir_all(firesquid_config.cache_dir.join("rootfs-staging"));
+                    if result.is_ok() {
+                        let _ = std::fs::remove_file(archive);
+                    }
+                    result
                 })
                 .await?;
                 println!("{}", output.display());
+                Ok(())
+            }
+        },
+        Command::Cache { command } => match command {
+            CacheCommand::Clean => {
+                let firesquid_config = Config::from_env();
+                let removed = run_blocking(move || kernel::clean_cache(&firesquid_config)).await?;
+                println!("removed {removed} kernel cache entries");
                 Ok(())
             }
         },
