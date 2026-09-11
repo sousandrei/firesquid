@@ -7,6 +7,7 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  SQLX_OFFLINE: true
 
 jobs:
   main:
@@ -31,6 +32,8 @@ jobs:
 
       - name: Audit dependencies
         uses: rustsec/audit-check@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Cargo Fmt
         run: cargo fmt --all -- --check
@@ -53,10 +56,6 @@ jobs:
         with:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
-
-      - name: Get assets
-        if: ${{ steps.release.outputs.release_created }}
-        run: curl -fsSL https://raw.githubusercontent.com/sousandrei/firesquid/main/scripts/getassets.sh | sh
 
       - uses: taiki-e/install-action@cargo-deb
         if: ${{ steps.release.outputs.release_created }}

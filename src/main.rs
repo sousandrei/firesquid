@@ -1,30 +1,24 @@
-use std::env;
-
 mod api;
 mod cli;
-mod consts;
+mod config;
 mod daemon;
 mod error;
-mod folders;
 mod image;
-mod io;
 mod kernel;
 mod network;
+mod protocol;
 mod runtime;
 mod state;
-mod unix_client;
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let filter = tracing_subscriber::EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info"));
-    tracing_subscriber::fmt().with_env_filter(filter).init();
+async fn main() -> Result<(), error::Error> {
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info")),
+        )
+        .with_target(false)
+        .init();
 
-    if env::var_os("DAEMON").is_none() {
-        return cli::new().await;
-    }
-
-    daemon::start().await?;
-
-    Ok(())
+    cli::run().await
 }

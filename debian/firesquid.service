@@ -1,13 +1,20 @@
 [Unit]
 AssertPathExists=/usr/bin/firesquid
+Description=Firesquid microVM manager
+After=local-fs.target
 
 [Service]
-WorkingDirectory=~
-ExecStart=/usr/bin/firesquid
-Restart=always
+ExecStart=/usr/bin/firesquid daemon
+Restart=on-failure
+RuntimeDirectory=firesquid
+StateDirectory=firesquid
+CacheDirectory=firesquid
+LogsDirectory=firesquid
+UMask=007
 PrivateTmp=true
 NoNewPrivileges=true
-Environment="DAEMON=1"
+ProtectSystem=strict
+ReadWritePaths=/var/lib/firesquid /var/cache/firesquid /var/log/firesquid
 
 [Install]
 Alias=firesquid

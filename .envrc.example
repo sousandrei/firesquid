@@ -1,0 +1,8 @@
+export FIRESQUID_DATA_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/firesquid"
+export FIRESQUID_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/tmp}/firesquid"
+export FIRESQUID_CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/firesquid"
+export FIRESQUID_SOCKET="${XDG_RUNTIME_DIR:-/tmp}/firesquid/firesquid.sock"
+
+# Point this at a SQLite database after applying migrations. It is used by
+# `cargo sqlx prepare` to validate query files at compile time.
+export DATABASE_URL="sqlite://${XDG_CACHE_HOME:-$HOME/.cache}/firesquid/prepare.db"

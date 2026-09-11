@@ -1,0 +1,2 @@
+DELETE FROM vms
+WHERE id = ?

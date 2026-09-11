@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE vms\nSET status = 'failed',\n    last_error = 'VM runtime is not available after daemon restart',\n    updated_at = CURRENT_TIMESTAMP\nWHERE status IN ('starting', 'running', 'stopping')\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "162da732ae309666a3adcf1181f3ba43c4bbcc9e264556167885fda66370bfb4"
+}

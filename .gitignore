@@ -8,6 +8,9 @@ logs
 todo
 
 .vscode
+.envrc
 
 test
 deb
+
+.envrc

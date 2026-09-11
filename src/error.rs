@@ -1,44 +1,25 @@
-use std::fmt;
+use thiserror::Error;
 
-#[derive(Debug)]
-pub struct RuntimeError {
-    message: String,
+#[derive(Debug, Error)]
+pub enum Error {
+    #[error("I/O error: {0}")]
+    Io(#[from] std::io::Error),
+
+    #[error("database error: {0}")]
+    Database(#[from] sqlx::Error),
+
+    #[error("migration error: {0}")]
+    Migration(#[from] sqlx::migrate::MigrateError),
+
+    #[error("protocol error: {0}")]
+    Protocol(String),
+
+    #[error("invalid request: {0}")]
+    InvalidRequest(String),
 }
 
-impl RuntimeError {
-    pub fn new(msg: &str) -> RuntimeError {
-        RuntimeError {
-            message: msg.to_string(),
-        }
-    }
-}
-
-impl From<hyper::Error> for RuntimeError {
-    fn from(error: hyper::Error) -> RuntimeError {
-        RuntimeError::new(&error.to_string())
-    }
-}
-
-impl From<hyper::http::Error> for RuntimeError {
-    fn from(error: hyper::http::Error) -> RuntimeError {
-        RuntimeError::new(&error.to_string())
-    }
-}
-
-impl From<std::io::Error> for RuntimeError {
-    fn from(error: std::io::Error) -> RuntimeError {
-        RuntimeError::new(&error.to_string())
-    }
-}
-
-impl fmt::Display for RuntimeError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.message)
-    }
-}
-
-impl std::error::Error for RuntimeError {
-    fn description(&self) -> &str {
-        &self.message
+impl From<postcard::Error> for Error {
+    fn from(error: postcard::Error) -> Self {
+        Self::Protocol(error.to_string())
     }
 }

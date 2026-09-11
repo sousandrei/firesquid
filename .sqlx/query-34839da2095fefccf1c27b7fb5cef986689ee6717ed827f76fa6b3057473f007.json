@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO vms (id, name, status)\nVALUES ('demo', 'demo', 'running')\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "34839da2095fefccf1c27b7fb5cef986689ee6717ed827f76fa6b3057473f007"
+}

@@ -1,46 +1,32 @@
-use axum::{
-    Router,
-    routing::{get, post},
+//! Request dispatch for the local daemon control protocol.
+
+use crate::{
+    error::Error,
+    protocol::{Operation, Response, ResponseBody},
+    state::SharedState,
 };
-use serde::{Deserialize, Serialize};
 
-mod create;
-mod delete;
-mod kill;
-mod list;
+pub async fn dispatch(state: &SharedState, request_id: u64, operation: Operation) -> Response {
+    let result = match operation {
+        Operation::Status => Ok(ResponseBody::Status {
+            service: "firesquid".to_owned(),
+        }),
+        Operation::VmList => state.list_vms().await.map(ResponseBody::VmList),
+        Operation::VmCreate { name } => state.create_vm(&name).await.map(ResponseBody::Vm),
+        Operation::VmInspect { id } => match state.get_vm(&id).await {
+            Ok(Some(vm)) => Ok(ResponseBody::Vm(vm)),
+            Ok(None) => Err(Error::InvalidRequest(format!("VM not found: {id}"))),
+            Err(error) => Err(error),
+        },
+        Operation::VmDelete { id } => match state.delete_vm(&id).await {
+            Ok(true) => Ok(ResponseBody::Empty),
+            Ok(false) => Err(Error::InvalidRequest(format!("VM not found: {id}"))),
+            Err(error) => Err(error),
+        },
+    };
 
-use crate::state::StatePtr;
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct VmInput {
-    pub vm_name: String,
-}
-
-pub fn router(state_ptr: StatePtr) -> Router {
-    Router::new()
-        .route(
-            "/",
-            get(list::handler)
-                .post(create::handler)
-                .delete(delete::handler),
-        )
-        .route("/kill", post(kill::handler))
-        .with_state(state_ptr)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::VmInput;
-
-    #[test]
-    fn vm_input_uses_stable_json_field_name() {
-        let input = VmInput {
-            vm_name: "demo".to_owned(),
-        };
-
-        assert_eq!(
-            serde_json::to_string(&input).unwrap(),
-            r#"{"vm_name":"demo"}"#
-        );
+    match result {
+        Ok(body) => Response::ok(request_id, body),
+        Err(error) => Response::error(request_id, &error),
     }
 }
