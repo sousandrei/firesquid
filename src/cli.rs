@@ -1,4 +1,7 @@
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::{
+    path::PathBuf,
+    sync::atomic::{AtomicU64, Ordering},
+};
 
 use clap::{Parser, Subcommand};
 use tokio::net::UnixStream;
@@ -7,6 +10,7 @@ use crate::{
     config::Config,
     daemon,
     error::Error,
+    image, kernel,
     protocol::{self, Operation, Request, Response, ResponseBody},
 };
 
@@ -26,9 +30,52 @@ struct Cli {
 enum Command {
     Daemon,
     Status,
+    Kernel {
+        #[command(subcommand)]
+        command: KernelCommand,
+    },
+    Image {
+        #[command(subcommand)]
+        command: ImageCommand,
+    },
     Vm {
         #[command(subcommand)]
         command: VmCommand,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+enum KernelCommand {
+    Build {
+        #[arg(long)]
+        source: Option<PathBuf>,
+        #[arg(long)]
+        config: Option<PathBuf>,
+        #[arg(long, default_value = "https://github.com/torvalds/linux.git")]
+        repo: String,
+        #[arg(long, default_value = "v6.18")]
+        tag: String,
+        #[arg(long, default_value_t = 2)]
+        jobs: usize,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+enum ImageCommand {
+    Prepare {
+        reference: String,
+        #[arg(long)]
+        output: PathBuf,
+    },
+    Import {
+        archive: PathBuf,
+    },
+    Build {
+        archive: PathBuf,
+        #[arg(long)]
+        output: PathBuf,
+        #[arg(long, default_value_t = 2048)]
+        size_mib: u32,
     },
 }
 
@@ -71,6 +118,61 @@ pub async fn run() -> Result<(), Error> {
     let json = cli.json;
     match cli.command {
         Command::Daemon => daemon::run(Config::from_env()).await,
+        Command::Kernel { command } => match command {
+            KernelCommand::Build {
+                source,
+                config: kernel_config,
+                repo,
+                tag,
+                jobs,
+            } => {
+                let firesquid_config = Config::from_env();
+                let output = run_blocking(move || {
+                    kernel::build(
+                        &firesquid_config,
+                        kernel::BuildOptions {
+                            source,
+                            config: kernel_config,
+                            repository: repo,
+                            tag,
+                            jobs,
+                        },
+                    )
+                })
+                .await?;
+                println!("{}", output.display());
+                Ok(())
+            }
+        },
+        Command::Image { command } => match command {
+            ImageCommand::Prepare { reference, output } => {
+                let output_for_prepare = output.clone();
+                run_blocking(move || image::prepare(&reference, &output_for_prepare)).await?;
+                println!("{}", output.display());
+                Ok(())
+            }
+            ImageCommand::Import { archive } => {
+                let firesquid_config = Config::from_env();
+                let output =
+                    run_blocking(move || image::import(&firesquid_config, &archive)).await?;
+                println!("{}", output.display());
+                Ok(())
+            }
+            ImageCommand::Build {
+                archive,
+                output,
+                size_mib,
+            } => {
+                let firesquid_config = Config::from_env();
+                let output_for_build = output.clone();
+                run_blocking(move || {
+                    image::build(&firesquid_config, &archive, &output_for_build, size_mib)
+                })
+                .await?;
+                println!("{}", output.display());
+                Ok(())
+            }
+        },
         Command::Status => {
             let body = request(Operation::Status).await?;
             if json {
@@ -111,6 +213,16 @@ pub async fn run() -> Result<(), Error> {
             print_response(body, json)
         }
     }
+}
+
+async fn run_blocking<F, T>(operation: F) -> Result<T, Error>
+where
+    F: FnOnce() -> Result<T, Error> + Send + 'static,
+    T: Send + 'static,
+{
+    tokio::task::spawn_blocking(operation)
+        .await
+        .map_err(|error| Error::Runtime(format!("local build task failed: {error}")))?
 }
 
 async fn request(operation: Operation) -> Result<ResponseBody, Error> {
