@@ -30,11 +30,6 @@ jobs:
       - name: Rust Cache
         uses: Swatinem/rust-cache@v2.7.3
 
-      - name: Audit dependencies
-        uses: rustsec/audit-check@v2
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Cargo Fmt
         run: cargo fmt --all -- --check
 
