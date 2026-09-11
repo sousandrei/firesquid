@@ -66,12 +66,16 @@ pub async fn start(state: &SharedState, id: &str) -> Result<(), Error> {
                 let _ = state.mark_stopped(&id).await;
             }
             Ok(status) => {
-                let _ = state
-                    .mark_failed(&id, &format!("Firecracker exited with {status}"))
-                    .await;
+                if !is_stopped(&state, &id).await {
+                    let _ = state
+                        .mark_failed(&id, &format!("Firecracker exited with {status}"))
+                        .await;
+                }
             }
             Err(error) => {
-                let _ = state.mark_failed(&id, &error.to_string()).await;
+                if !is_stopped(&state, &id).await {
+                    let _ = state.mark_failed(&id, &error.to_string()).await;
+                }
             }
         }
         cleanup(&state.config.vm_socket(&id)).await;
@@ -84,7 +88,26 @@ pub async fn stop(state: &SharedState, id: &str) -> Result<(), Error> {
     state.mark_stopping(id).await?;
     FirecrackerClient::new(state.config.vm_socket(&vm.id))
         .action("SendCtrlAltDel")
-        .await
+        .await?;
+
+    for _ in 0..50 {
+        sleep(Duration::from_millis(100)).await;
+        if matches!(state.get_vm(id).await?, Some(vm) if vm.status == VmStatus::Stopped) {
+            return Ok(());
+        }
+    }
+
+    let pid = vm
+        .pid
+        .ok_or_else(|| Error::Runtime(format!("VM has no process ID: {id}")))?;
+    send_signal(
+        Pid::from_raw(
+            i32::try_from(pid).map_err(|_| Error::Runtime("invalid process ID".to_owned()))?,
+        ),
+        Signal::SIGTERM,
+    )
+    .map_err(|error| Error::Runtime(format!("failed to stop VM after timeout: {error}")))?;
+    state.mark_stopped(id).await
 }
 
 pub async fn kill(state: &SharedState, id: &str) -> Result<(), Error> {
@@ -99,7 +122,11 @@ pub async fn kill(state: &SharedState, id: &str) -> Result<(), Error> {
         Signal::SIGKILL,
     )
     .map_err(|error| Error::Runtime(format!("failed to kill VM: {error}")))?;
-    state.mark_stopping(id).await
+    state.mark_stopped(id).await
+}
+
+async fn is_stopped(state: &SharedState, id: &str) -> bool {
+    matches!(state.get_vm(id).await, Ok(Some(vm)) if vm.status == VmStatus::Stopped)
 }
 
 async fn active_vm(state: &SharedState, id: &str) -> Result<Vm, Error> {

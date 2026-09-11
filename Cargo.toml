@@ -18,6 +18,16 @@ assets = [
         "/lib/systemd/system/firesquid.service",
         "644",
     ],
+    [
+        "profiles/ubuntu/Dockerfile",
+        "/usr/share/firesquid/profiles/ubuntu/Dockerfile",
+        "644",
+    ],
+    [
+        "profiles/ubuntu/init",
+        "/usr/share/firesquid/profiles/ubuntu/init",
+        "755",
+    ],
 ]
 depends = "$auto, systemd"
 extended-description = "Firesquid microVM manager daemon"
@@ -46,7 +56,6 @@ nix = { version = "0.31", features = ["signal"] }
 postcard = { version = "1.1", features = ["alloc"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-sha2 = "0.11"
 sqlx = { version = "0.9", default-features = false, features = [
     "macros",
     "migrate",
@@ -78,7 +87,6 @@ nix.workspace = true
 postcard.workspace = true
 serde.workspace = true
 serde_json.workspace = true
-sha2.workspace = true
 sqlx.workspace = true
 tar.workspace = true
 thiserror.workspace = true

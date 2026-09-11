@@ -8,6 +8,7 @@ pub struct Config {
     pub cache_dir: PathBuf,
     pub socket_path: PathBuf,
     pub firecracker_path: PathBuf,
+    pub profiles_dir: PathBuf,
 }
 
 impl Config {
@@ -19,6 +20,7 @@ impl Config {
             cache_dir: path_from_env("FIRESQUID_CACHE_DIR", "/var/cache/firesquid"),
             socket_path: path_from_env("FIRESQUID_SOCKET", "/run/firesquid/firesquid.sock"),
             firecracker_path: path_from_env("FIRESQUID_FIRECRACKER", "firecracker"),
+            profiles_dir: path_from_env("FIRESQUID_PROFILES_DIR", "profiles"),
         }
     }
 

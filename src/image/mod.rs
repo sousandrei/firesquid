@@ -9,7 +9,6 @@ use std::{
 
 use flate2::read::GzDecoder;
 use serde::Deserialize;
-use sha2::{Digest, Sha256};
 use tar::Archive;
 
 use crate::{config::Config, error::Error};
@@ -20,74 +19,59 @@ struct Manifest {
     layers: Vec<String>,
 }
 
-pub fn import(config: &Config, archive: &Path) -> Result<PathBuf, Error> {
-    require_file(archive, "image archive")?;
-    let file = File::open(archive)?;
-    let mut tar = Archive::new(file);
-    let mut manifest = None;
-    for entry in tar.entries()? {
-        let mut entry = entry?;
-        if entry.path()?.as_ref() == Path::new("manifest.json") {
-            let mut contents = String::new();
-            std::io::Read::read_to_string(&mut entry, &mut contents)?;
-            manifest = Some(contents);
-            break;
-        }
-    }
-    let manifests: Vec<Manifest> =
-        serde_json::from_str(&manifest.ok_or_else(|| {
-            Error::InvalidRequest("Docker archive lacks manifest.json".to_owned())
-        })?)
-        .map_err(|error| Error::InvalidRequest(format!("invalid Docker manifest: {error}")))?;
-    if manifests.len() != 1 || manifests[0].layers.is_empty() {
-        return Err(Error::InvalidRequest(
-            "Docker archive must contain one image with layers".to_owned(),
-        ));
-    }
-
-    let digest = sha256_file(archive)?;
-    let directory = config.cache_dir.join("images");
-    std::fs::create_dir_all(&directory)?;
-    let destination = directory.join(format!("{digest}.tar"));
-    std::fs::copy(archive, &destination)?;
-    Ok(destination)
-}
-
-pub fn prepare(reference: &str, output: &Path) -> Result<(), Error> {
-    if reference.trim().is_empty() {
-        return Err(Error::InvalidRequest(
-            "image reference cannot be empty".to_owned(),
-        ));
-    }
-    if output.exists() {
-        return Err(Error::InvalidRequest(format!(
-            "image archive already exists: {}",
-            output.display()
-        )));
-    }
-    let pull = Command::new("docker")
-        .args(["pull", reference])
+pub fn prepare(config: &Config, profile: &str) -> Result<PathBuf, Error> {
+    validate_profile_name(profile)?;
+    let profile_dir = config.profiles_dir.join(profile);
+    require_file(&profile_dir.join("Dockerfile"), "profile Dockerfile")?;
+    let tag = format!("firesquid-{profile}:latest");
+    let output = config
+        .cache_dir
+        .join("images")
+        .join(format!("{profile}.tar"));
+    let build = Command::new("docker")
+        .args(["build", "--pull", "--tag", &tag])
+        .arg(&profile_dir)
         .status()
-        .map_err(|error| Error::Runtime(format!("failed to run docker pull: {error}")))?;
-    if !pull.success() {
-        return Err(Error::Runtime(format!("docker pull failed with {pull}")));
+        .map_err(|error| Error::Runtime(format!("failed to run docker build: {error}")))?;
+    if !build.success() {
+        return Err(Error::Runtime(format!("docker build failed with {build}")));
     }
     if let Some(parent) = output.parent() {
         std::fs::create_dir_all(parent)?;
     }
     let save = Command::new("docker")
-        .args(["save", reference, "-o"])
-        .arg(output)
+        .args(["save", &tag, "-o"])
+        .arg(&output)
         .status()
         .map_err(|error| Error::Runtime(format!("failed to run docker save: {error}")))?;
     if !save.success() {
         return Err(Error::Runtime(format!("docker save failed with {save}")));
     }
+    Ok(output)
+}
+
+fn validate_profile_name(profile: &str) -> Result<(), Error> {
+    if profile.is_empty()
+        || !profile
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || byte == b'-' || byte == b'_')
+    {
+        return Err(Error::InvalidRequest(format!(
+            "invalid image profile name: {profile}"
+        )));
+    }
     Ok(())
 }
 
-pub fn build(config: &Config, archive: &Path, output: &Path, size_mib: u32) -> Result<(), Error> {
+pub fn build(
+    config: &Config,
+    archive: &Path,
+    output: &Path,
+    init_script: &Path,
+    size_mib: u32,
+) -> Result<(), Error> {
     require_file(archive, "image archive")?;
+    require_file(init_script, "init script")?;
     if size_mib == 0 {
         return Err(Error::InvalidRequest(
             "rootfs size must be greater than zero".to_owned(),
@@ -105,7 +89,7 @@ pub fn build(config: &Config, archive: &Path, output: &Path, size_mib: u32) -> R
     }
     std::fs::create_dir_all(&staging)?;
     flatten_archive(archive, &staging)?;
-    install_init(&staging)?;
+    install_init(&staging, init_script)?;
     if let Some(parent) = output.parent() {
         std::fs::create_dir_all(parent)?;
     }
@@ -231,13 +215,10 @@ fn safe_relative(path: &Path) -> Result<PathBuf, Error> {
     Ok(path.to_path_buf())
 }
 
-fn install_init(staging: &Path) -> Result<(), Error> {
+fn install_init(staging: &Path, init_script: &Path) -> Result<(), Error> {
     let init = staging.join("sbin/init");
     std::fs::create_dir_all(init.parent().expect("static init parent"))?;
-    std::fs::write(
-        &init,
-        b"#!/bin/sh\nmount -t devtmpfs dev /dev\nmount -t proc proc /proc\nmount -t sysfs sysfs /sys\nexec /bin/sh\n",
-    )?;
+    std::fs::copy(init_script, &init)?;
     use std::os::unix::fs::PermissionsExt;
     let mut permissions = std::fs::metadata(&init)?.permissions();
     permissions.set_mode(0o755);
@@ -254,24 +235,6 @@ fn require_file(path: &Path, label: &str) -> Result<(), Error> {
             path.display()
         )))
     }
-}
-
-fn sha256_file(path: &Path) -> Result<String, Error> {
-    let mut file = File::open(path)?;
-    let mut digest = Sha256::new();
-    let mut buffer = [0; 8192];
-    loop {
-        let count = file.read(&mut buffer)?;
-        if count == 0 {
-            break;
-        }
-        digest.update(&buffer[..count]);
-    }
-    Ok(digest
-        .finalize()
-        .iter()
-        .map(|byte| format!("{byte:02x}"))
-        .collect())
 }
 
 #[cfg(test)]

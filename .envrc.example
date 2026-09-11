@@ -8,5 +8,6 @@ export FIRESQUID_SOCKET="${XDG_RUNTIME_DIR:-/tmp}/firesquid/firesquid.sock"
 export DATABASE_URL="sqlite://${XDG_CACHE_HOME:-$HOME/.cache}/firesquid/prepare.db"
 export SQLX_OFFLINE=true
 export FIRESQUID_FIRECRACKER="firecracker"
+export FIRESQUID_PROFILES_DIR="/usr/share/firesquid/profiles"
 
 # Use this for query preparation: SQLX_OFFLINE=false cargo sqlx prepare --workspace

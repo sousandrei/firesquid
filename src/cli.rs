@@ -62,18 +62,11 @@ enum KernelCommand {
 
 #[derive(Debug, Subcommand)]
 enum ImageCommand {
-    Prepare {
-        reference: String,
-        #[arg(long)]
-        output: PathBuf,
-    },
-    Import {
-        archive: PathBuf,
-    },
     Build {
-        archive: PathBuf,
+        #[arg(default_value = "ubuntu")]
+        profile: String,
         #[arg(long)]
-        output: PathBuf,
+        output: Option<PathBuf>,
         #[arg(long, default_value_t = 2048)]
         size_mib: u32,
     },
@@ -145,28 +138,29 @@ pub async fn run() -> Result<(), Error> {
             }
         },
         Command::Image { command } => match command {
-            ImageCommand::Prepare { reference, output } => {
-                let output_for_prepare = output.clone();
-                run_blocking(move || image::prepare(&reference, &output_for_prepare)).await?;
-                println!("{}", output.display());
-                Ok(())
-            }
-            ImageCommand::Import { archive } => {
-                let firesquid_config = Config::from_env();
-                let output =
-                    run_blocking(move || image::import(&firesquid_config, &archive)).await?;
-                println!("{}", output.display());
-                Ok(())
-            }
             ImageCommand::Build {
-                archive,
                 output,
+                profile,
                 size_mib,
             } => {
                 let firesquid_config = Config::from_env();
+                let output = output.unwrap_or_else(|| {
+                    firesquid_config
+                        .cache_dir
+                        .join("rootfs")
+                        .join(format!("{profile}.ext4"))
+                });
+                let init = firesquid_config.profiles_dir.join(&profile).join("init");
                 let output_for_build = output.clone();
                 run_blocking(move || {
-                    image::build(&firesquid_config, &archive, &output_for_build, size_mib)
+                    let archive = image::prepare(&firesquid_config, &profile)?;
+                    image::build(
+                        &firesquid_config,
+                        &archive,
+                        &output_for_build,
+                        &init,
+                        size_mib,
+                    )
                 })
                 .await?;
                 println!("{}", output.display());

@@ -1,0 +1,11 @@
+#!/bin/sh
+
+mount -t devtmpfs dev /dev
+mount -t proc proc /proc
+mount -t sysfs sysfs /sys
+
+trap 'sync; poweroff -f' INT TERM
+
+while :; do
+    sleep 3600
+done
