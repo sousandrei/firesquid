@@ -16,7 +16,7 @@ use crate::{
 
 pub async fn run(config: Config) -> Result<(), Error> {
     config.prepare_directories().await?;
-    let state: SharedState = Arc::new(State::open(&config.database_path()).await?);
+    let state: SharedState = Arc::new(State::open(&config.database_path(), config.clone()).await?);
     state.reconcile().await?;
 
     let _ = tokio::fs::remove_file(&config.socket_path).await;

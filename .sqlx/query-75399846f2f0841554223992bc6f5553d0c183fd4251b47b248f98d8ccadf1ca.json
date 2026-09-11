@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO vms (id, name, status, kernel_path, rootfs_path, vcpus, memory_mib)\nVALUES (?, ?, 'created', ?, ?, ?, ?)\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 6
+    },
+    "nullable": []
+  },
+  "hash": "75399846f2f0841554223992bc6f5553d0c183fd4251b47b248f98d8ccadf1ca"
+}

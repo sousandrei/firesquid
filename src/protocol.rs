@@ -17,9 +17,31 @@ pub struct Request {
 pub enum Operation {
     Status,
     VmList,
-    VmCreate { name: String },
-    VmInspect { id: String },
-    VmDelete { id: String },
+    VmCreate {
+        name: String,
+        kernel_path: String,
+        rootfs_path: String,
+        vcpus: u32,
+        memory_mib: u32,
+    },
+    VmStart {
+        id: String,
+    },
+    VmStop {
+        id: String,
+    },
+    VmKill {
+        id: String,
+    },
+    VmInspect {
+        id: String,
+    },
+    VmDelete {
+        id: String,
+    },
+    VmLogs {
+        id: String,
+    },
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -34,6 +56,7 @@ pub enum ResponseBody {
     Status { service: String },
     VmList(Vec<Vm>),
     Vm(Vm),
+    Logs(String),
     Empty,
 }
 

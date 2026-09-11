@@ -3,6 +3,11 @@ CREATE TABLE vms (
     name TEXT NOT NULL UNIQUE,
     status TEXT NOT NULL,
     last_error TEXT,
+    kernel_path TEXT NOT NULL DEFAULT '',
+    rootfs_path TEXT NOT NULL DEFAULT '',
+    vcpus INTEGER NOT NULL DEFAULT 1,
+    memory_mib INTEGER NOT NULL DEFAULT 512,
+    pid INTEGER,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

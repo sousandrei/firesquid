@@ -1,0 +1,122 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id, name, status, last_error, kernel_path, rootfs_path, vcpus, memory_mib, pid\nFROM vms\nWHERE id = ?\n",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "vms",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "name": "name",
+        "ordinal": 1,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "vms",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "name": "status",
+        "ordinal": 2,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "vms",
+            "name": "status"
+          }
+        }
+      },
+      {
+        "name": "last_error",
+        "ordinal": 3,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "vms",
+            "name": "last_error"
+          }
+        }
+      },
+      {
+        "name": "kernel_path",
+        "ordinal": 4,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "vms",
+            "name": "kernel_path"
+          }
+        }
+      },
+      {
+        "name": "rootfs_path",
+        "ordinal": 5,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "vms",
+            "name": "rootfs_path"
+          }
+        }
+      },
+      {
+        "name": "vcpus",
+        "ordinal": 6,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "vms",
+            "name": "vcpus"
+          }
+        }
+      },
+      {
+        "name": "memory_mib",
+        "ordinal": 7,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "vms",
+            "name": "memory_mib"
+          }
+        }
+      },
+      {
+        "name": "pid",
+        "ordinal": 8,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "vms",
+            "name": "pid"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "5081a73f303f75382e769d28d25515865fe4d64d4539f74641e5f4ae21e9ae3d"
+}

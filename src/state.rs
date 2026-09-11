@@ -3,7 +3,7 @@ use std::{path::Path, sync::Arc};
 use serde::{Deserialize, Serialize};
 use sqlx::{SqlitePool, sqlite::SqlitePoolOptions};
 
-use crate::error::Error;
+use crate::{config::Config, error::Error};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -52,17 +52,23 @@ pub struct Vm {
     pub name: String,
     pub status: VmStatus,
     pub last_error: Option<String>,
+    pub kernel_path: String,
+    pub rootfs_path: String,
+    pub vcpus: u32,
+    pub memory_mib: u32,
+    pub pid: Option<u32>,
 }
 
 #[derive(Clone)]
 pub struct State {
     pool: SqlitePool,
+    pub config: Config,
 }
 
 pub type SharedState = Arc<State>;
 
 impl State {
-    pub async fn open(path: &Path) -> Result<Self, Error> {
+    pub async fn open(path: &Path, config: Config) -> Result<Self, Error> {
         if let Some(parent) = path.parent() {
             tokio::fs::create_dir_all(parent).await?;
         }
@@ -74,7 +80,7 @@ impl State {
             .max_connections(1)
             .connect_with(options)
             .await?;
-        let state = Self { pool };
+        let state = Self { pool, config };
         sqlx::migrate!("./migrations").run(&state.pool).await?;
         Ok(state)
     }
@@ -100,31 +106,107 @@ impl State {
         row.map(Vm::try_from).transpose()
     }
 
-    pub async fn create_vm(&self, name: &str) -> Result<Vm, Error> {
-        validate_name(name)?;
-        sqlx::query_file!("src/queries/vm_create.sql", name, name)
-            .execute(&self.pool)
-            .await
-            .map_err(|error| {
-                if let sqlx::Error::Database(database_error) = &error
-                    && database_error.is_unique_violation()
-                {
-                    return Error::InvalidRequest(format!("VM already exists: {name}"));
-                }
-                Error::Database(error)
-            })?;
-
-        self.get_vm(name)
-            .await?
-            .ok_or_else(|| Error::Protocol("created VM was not found".to_owned()))
-    }
-
     pub async fn delete_vm(&self, id: &str) -> Result<bool, Error> {
         let result = sqlx::query_file!("src/queries/vm_delete.sql", id)
             .execute(&self.pool)
             .await?;
         Ok(result.rows_affected() > 0)
     }
+
+    #[cfg(test)]
+    pub async fn create_vm(&self, name: &str) -> Result<Vm, Error> {
+        self.create_vm_with_spec(&VmSpec {
+            name: name.to_owned(),
+            kernel_path: String::new(),
+            rootfs_path: String::new(),
+            vcpus: 1,
+            memory_mib: 512,
+        })
+        .await
+    }
+
+    pub async fn create_vm_with_spec(&self, spec: &VmSpec) -> Result<Vm, Error> {
+        validate_name(&spec.name)?;
+        sqlx::query_file!(
+            "src/queries/vm_create.sql",
+            &spec.name,
+            &spec.name,
+            &spec.kernel_path,
+            &spec.rootfs_path,
+            i64::from(spec.vcpus),
+            i64::from(spec.memory_mib)
+        )
+        .execute(&self.pool)
+        .await
+        .map_err(|error| {
+            if let sqlx::Error::Database(database_error) = &error
+                && database_error.is_unique_violation()
+            {
+                return Error::InvalidRequest(format!("VM already exists: {}", spec.name));
+            }
+            Error::Database(error)
+        })?;
+
+        self.get_vm(&spec.name)
+            .await?
+            .ok_or_else(|| Error::Protocol("created VM was not found".to_owned()))
+    }
+
+    pub async fn begin_start(&self, id: &str) -> Result<Vm, Error> {
+        let vm = self
+            .get_vm(id)
+            .await?
+            .ok_or_else(|| Error::InvalidRequest(format!("VM not found: {id}")))?;
+        if matches!(
+            vm.status,
+            VmStatus::Starting | VmStatus::Running | VmStatus::Stopping
+        ) {
+            return Err(Error::InvalidRequest(format!("VM is already active: {id}")));
+        }
+        sqlx::query_file!("src/queries/vm_start.sql", id)
+            .execute(&self.pool)
+            .await?;
+        self.get_vm(id)
+            .await?
+            .ok_or_else(|| Error::Protocol("started VM was not found".to_owned()))
+    }
+
+    pub async fn mark_running(&self, id: &str, pid: u32) -> Result<(), Error> {
+        sqlx::query_file!("src/queries/vm_mark_running.sql", i64::from(pid), id)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn mark_stopping(&self, id: &str) -> Result<(), Error> {
+        sqlx::query_file!("src/queries/vm_mark_stopping.sql", id)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn mark_stopped(&self, id: &str) -> Result<(), Error> {
+        sqlx::query_file!("src/queries/vm_mark_stopped.sql", id)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn mark_failed(&self, id: &str, message: &str) -> Result<(), Error> {
+        sqlx::query_file!("src/queries/vm_mark_failed.sql", message, id)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct VmSpec {
+    pub name: String,
+    pub kernel_path: String,
+    pub rootfs_path: String,
+    pub vcpus: u32,
+    pub memory_mib: u32,
 }
 
 #[derive(Debug)]
@@ -133,6 +215,11 @@ struct VmRow {
     name: String,
     status: String,
     last_error: Option<String>,
+    kernel_path: String,
+    rootfs_path: String,
+    vcpus: i64,
+    memory_mib: i64,
+    pid: Option<i64>,
 }
 
 impl TryFrom<VmRow> for Vm {
@@ -144,6 +231,17 @@ impl TryFrom<VmRow> for Vm {
             name: row.name,
             status: VmStatus::try_from(row.status.as_str())?,
             last_error: row.last_error,
+            kernel_path: row.kernel_path,
+            rootfs_path: row.rootfs_path,
+            vcpus: u32::try_from(row.vcpus)
+                .map_err(|_| Error::Protocol("invalid vCPU count in state".to_owned()))?,
+            memory_mib: u32::try_from(row.memory_mib)
+                .map_err(|_| Error::Protocol("invalid memory size in state".to_owned()))?,
+            pid: row
+                .pid
+                .map(u32::try_from)
+                .transpose()
+                .map_err(|_| Error::Protocol("invalid process ID in state".to_owned()))?,
         })
     }
 }
@@ -172,6 +270,7 @@ mod tests {
     };
 
     use super::{State, VmStatus};
+    use crate::config::Config;
 
     static NEXT_TEST_DB: AtomicU64 = AtomicU64::new(0);
 
@@ -186,7 +285,9 @@ mod tests {
                 .expect("clock before Unix epoch")
                 .as_nanos()
         ));
-        State::open(&path).await.expect("state should open")
+        State::open(&path, Config::from_env())
+            .await
+            .expect("state should open")
     }
 
     #[tokio::test]

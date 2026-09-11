@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE vms\nSET status = 'starting',\n    last_error = NULL,\n    pid = NULL,\n    updated_at = CURRENT_TIMESTAMP\nWHERE id = ?\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "25ffc03c7cf4b5add638a4e2bbeb1e10355e9a66506490e34f8bdaebfec56611"
+}

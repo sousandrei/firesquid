@@ -14,6 +14,9 @@ pub enum Error {
     #[error("protocol error: {0}")]
     Protocol(String),
 
+    #[error("runtime error: {0}")]
+    Runtime(String),
+
     #[error("invalid request: {0}")]
     InvalidRequest(String),
 }
