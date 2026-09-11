@@ -7,5 +7,6 @@ export FIRESQUID_SOCKET="${XDG_RUNTIME_DIR:-/tmp}/firesquid/firesquid.sock"
 # SQLx uses this SQLite database for `cargo sqlx prepare`.
 export DATABASE_URL="sqlite://${XDG_CACHE_HOME:-$HOME/.cache}/firesquid/prepare.db"
 export SQLX_OFFLINE=true
+export FIRESQUID_FIRECRACKER="firecracker"
 
 # Use this for query preparation: SQLX_OFFLINE=false cargo sqlx prepare --workspace

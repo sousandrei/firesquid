@@ -28,7 +28,7 @@ pub async fn start(state: &SharedState, id: &str) -> Result<(), Error> {
     let socket = config.vm_socket(id);
     let _ = tokio::fs::remove_file(&socket).await;
 
-    let mut child = Command::new("firecracker")
+    let mut child = Command::new(&config.firecracker_path)
         .arg("--api-sock")
         .arg(&socket)
         .stdin(Stdio::null())
@@ -208,7 +208,7 @@ impl FirecrackerClient {
 
     async fn action(&self, action: &str) -> Result<(), Error> {
         self.request(
-            Method::POST,
+            Method::PUT,
             "/actions",
             format!(r#"{{"action_type":"{action}"}}"#),
         )
@@ -240,9 +240,19 @@ impl FirecrackerClient {
             .await
             .map_err(|error| Error::Runtime(format!("Firecracker API request failed: {error}")))?;
         let status = response.status();
-        let _ = response.into_body().collect().await;
+        let response_body = response
+            .into_body()
+            .collect()
+            .await
+            .map_err(|error| {
+                Error::Runtime(format!("failed to read Firecracker API response: {error}"))
+            })?
+            .to_bytes();
         if status != StatusCode::NO_CONTENT && !status.is_success() {
-            return Err(Error::Runtime(format!("Firecracker API returned {status}")));
+            let detail = String::from_utf8_lossy(&response_body);
+            return Err(Error::Runtime(format!(
+                "Firecracker API returned {status}: {detail}"
+            )));
         }
         Ok(())
     }
