@@ -1,8 +1,7 @@
 {
   "packages": {
     ".": {
-      "release-type": "rust",
-      "component": "firesquid"
+      "release-type": "rust"
     }
   }
 }

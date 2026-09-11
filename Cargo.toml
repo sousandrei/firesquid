@@ -36,7 +36,6 @@ priority = "optional"
 section = "admin"
 
 [workspace]
-members = ["."]
 resolver = "3"
 
 [workspace.package]
