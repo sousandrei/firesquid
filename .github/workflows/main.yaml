@@ -21,58 +21,50 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions-rs/toolchain@v1
+      - uses: dtolnay/rust-toolchain@stable
         name: Installing Rust Toolchain
         with:
-          profile: default
-          toolchain: stable
-          override: true
           components: rustfmt, clippy
 
       - name: Rust Cache
         uses: Swatinem/rust-cache@v2.7.3
 
-      - uses: actions-rs/cargo@v1
-        name: Cargo Fmt
-        with:
-          command: fmt
-          args: --all -- --check
+      - name: Audit dependencies
+        uses: rustsec/audit-check@v2
 
-      - uses: actions-rs/cargo@v1
-        name: Cargo Clippy
-        with:
-          command: clippy
-          args: --release -- -D warnings
+      - name: Cargo Fmt
+        run: cargo fmt --all -- --check
 
-      - uses: actions-rs/cargo@v1
-        name: Cargo Build
-        with:
-          command: build
-          args: --release
+      - name: Cargo Clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Cargo Check
+        run: cargo check --workspace
+
+      - name: Cargo Test
+        run: cargo test --workspace
+
+      - name: Cargo Build
+        run: cargo build --workspace --release
 
       - uses: google-github-actions/release-please-action@v4
         name: Release
         id: release
         with:
-          release-type: rust
-          package-name: firesquid
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
 
       - name: Get assets
         if: ${{ steps.release.outputs.release_created }}
         run: curl -fsSL https://raw.githubusercontent.com/sousandrei/firesquid/main/scripts/getassets.sh | sh
 
-      - uses: actions-rs/cargo@v1
+      - uses: taiki-e/install-action@cargo-deb
         if: ${{ steps.release.outputs.release_created }}
         name: Install Cargo Deb
-        with:
-          command: install
-          args: cargo-deb
 
-      - uses: actions-rs/cargo@v1
+      - name: Build Debian Package
         if: ${{ steps.release.outputs.release_created }}
-        name: Build Debian Package
-        with:
-          command: deb
+        run: cargo deb
 
       - name: Upload Release Artifact
         if: ${{ steps.release.outputs.release_created }}

@@ -18,31 +18,28 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions-rs/toolchain@v1
+      - uses: dtolnay/rust-toolchain@stable
         name: installing toolchain
         with:
-          profile: default
-          toolchain: stable
-          override: true
           components: rustfmt, clippy
 
       - name: Rust Cache
         uses: Swatinem/rust-cache@v2.7.3
 
-      - uses: actions-rs/cargo@v1
-        name: fmt
-        with:
-          command: fmt
-          args: --all -- --check
+      - name: Audit dependencies
+        uses: rustsec/audit-check@v2
 
-      - uses: actions-rs/cargo@v1
-        name: clippy
-        with:
-          command: clippy
-          args: --release -- -D warnings
+      - name: fmt
+        run: cargo fmt --all -- --check
 
-      - uses: actions-rs/cargo@v1
-        name: build
-        with:
-          command: build
-          args: --release
+      - name: clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: check
+        run: cargo check --workspace
+
+      - name: test
+        run: cargo test --workspace
+
+      - name: build
+        run: cargo build --workspace --release
